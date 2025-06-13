@@ -7,6 +7,7 @@ import Register from './pages/Register.jsx'
 import VerifyEmail from './pages/VerifyEmail.jsx';
 import Login from './pages/Login.jsx';
 import SearchUser from './pages/SearchUser.jsx';
+import FriendRequests from './pages/FriendRequests.jsx';
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
         <Route path='/verify-email' element={<VerifyEmail/>} />
         <Route path='/login' element={<Login/>} />
         <Route path='/searchuser' element={<SearchUser/>} />
+        <Route path='/friendrequests' element={<FriendRequests/>} />
       </Routes>
     </BrowserRouter>
   )
