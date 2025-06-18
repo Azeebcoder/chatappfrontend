@@ -4,6 +4,7 @@ import InputField from "../components/InputField.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
+import { Camera } from "lucide-react";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -13,33 +14,105 @@ export default function Register() {
     name: "",
   });
 
+  const [profilePic, setProfilePic] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // 🛠️ Handles form input changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Registration Handler
+  const resizeImage = (file, maxWidth = 300, maxHeight = 300) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.src = e.target.result;
+      };
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        // Maintain aspect ratio
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            const resizedFile = new File([blob], file.name, { type: file.type });
+            resolve(resizedFile);
+          },
+          file.type,
+          0.8
+        );
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Please select an image smaller than 2MB.");
+        return;
+      }
+
+      const resized = await resizeImage(file);
+      setProfilePic(resized);
+      setPreviewImage(URL.createObjectURL(resized));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await axios.post("/auth/register", formData);
+      const formDataToSend = new FormData();
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("username", formData.username);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("password", formData.password);
+      if (profilePic) {
+        formDataToSend.append("profilePic", profilePic);
+      }
+
+      const res = await axios.post("/auth/register", formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        withCredentials: true,
+      });
 
       if (!res.data.success) {
         return toast.error(res.data.message || "Registration failed");
       }
 
       toast.success(res.data.message || "Registration successful");
-      
-      // 🔁 Redirect to verify email
+
       setTimeout(() => {
         navigate("/verify-email");
       }, 1000);
-
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed");
     } finally {
@@ -47,39 +120,65 @@ export default function Register() {
     }
   };
 
-  // ✅ Check if user is already authenticated or needs email verification
   useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const res = await axios.get("/auth/is-authenticated", {
-        withCredentials: true,
-      });
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get("/auth/is-authenticated", {
+          withCredentials: true,
+        });
 
-      const { success, message } = res.data;
+        const { success, message } = res.data;
 
-      if (message && message.toLowerCase().includes("not verified")) {
-        navigate("/verify-email");
-      } else if (success) {
-        navigate("/");
+        if (message?.toLowerCase().includes("not verified")) {
+          navigate("/verify-email");
+        } else if (success) {
+          navigate("/");
+        }
+      } catch (err) {
+        const message = err.response?.data?.message || "";
+        if (message.toLowerCase().includes("not verified")) {
+          navigate("/verify-email");
+        }
       }
-    } catch (err) {
-      const message = err.response?.data?.message || "";
-      if (message.toLowerCase().includes("not verified")) {
-        navigate("/verify-email");  // <-- Redirect here when 403 and "User is not verified"
-      } else {
-        console.log("Not authenticated:", message || "Unauthenticated");
-      }
-    }
-  };
+    };
 
-  checkAuth();
-}, [navigate]);
-
+    checkAuth();
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4">
+      <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-2xl w-full max-w-md">
+        <h2 className="text-3xl font-extrabold mb-6 text-center text-blue-700">
+          Create Account
+        </h2>
+
+        {/* 👤 Profile Image Section */}
+        <div className="flex justify-center mb-6 relative">
+          <div className="relative w-28 h-28">
+            <img
+              src={
+                previewImage ||
+                "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+              }
+              alt="Preview"
+              className="w-28 h-28 rounded-full object-cover border-2 border-blue-300 shadow"
+            />
+            <label
+              htmlFor="profileInput"
+              className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow cursor-pointer hover:bg-blue-50"
+            >
+              <Camera size={20} className="text-blue-600" />
+            </label>
+            <input
+              id="profileInput"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField
             type="text"
@@ -109,13 +208,15 @@ export default function Register() {
             value={formData.password}
             onChange={handleChange}
           />
+
           <SubmitButton loading={loading} text="Register" />
         </form>
+
         <p className="text-center text-sm text-gray-600 mt-4">
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-blue-600 font-medium hover:underline hover:text-blue-800 transition duration-200"
+            className="text-blue-600 font-semibold hover:underline hover:text-blue-800 transition"
           >
             Login Here
           </Link>

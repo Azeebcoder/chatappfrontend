@@ -26,9 +26,8 @@ const SearchUser = () => {
       const res = await axios.get(`/chat/searchedusers?search=${query}`);
       const fetchedUsers = res.data.data;
 
-      // Build friendRequests map
       const requestsMap = {};
-      fetchedUsers.forEach(user => {
+      fetchedUsers.forEach((user) => {
         requestsMap[user._id] = user.isRequested;
       });
 
@@ -72,16 +71,24 @@ const SearchUser = () => {
           {users.map((user) => (
             <li
               key={user._id}
-              className="flex items-center justify-between p-2 border-b border-gray-700"
+              className="flex items-center justify-between gap-3 p-2 border-b border-gray-700"
             >
-              <div>
-                <p className="font-medium">{user.username}</p>
-                <p className="text-sm text-gray-400">{user.name}</p>
+              <div className="flex items-center gap-3">
+                <img
+                  src={user.profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                  alt={user.username}
+                  className="w-10 h-10 rounded-full object-cover border border-gray-600"
+                />
+                <div>
+                  <p className="font-medium">{user.username}</p>
+                  <p className="text-sm text-gray-400">{user.name}</p>
+                </div>
               </div>
+
               <button
                 onClick={() => sendFriendRequest(user._id)}
                 disabled={friendRequests[user._id]}
-                className={`flex items-center px-3 py-1 rounded text-sm ${
+                className={`flex items-center px-3 py-1 rounded text-sm transition ${
                   friendRequests[user._id]
                     ? "bg-green-600 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
@@ -99,4 +106,3 @@ const SearchUser = () => {
 };
 
 export default SearchUser;
-  
