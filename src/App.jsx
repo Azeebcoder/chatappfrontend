@@ -8,6 +8,8 @@ import VerifyEmail from './pages/VerifyEmail.jsx';
 import Login from './pages/Login.jsx';
 import SearchUser from './pages/SearchUser.jsx';
 import FriendRequests from './pages/FriendRequests.jsx';
+import CreateChat from './pages/CreateNewChat.jsx';
+import ChatPage from './pages/ChatPage.jsx';
 
 const App = () => {
   return (
@@ -19,6 +21,8 @@ const App = () => {
         <Route path='/login' element={<Login/>} />
         <Route path='/searchuser' element={<SearchUser/>} />
         <Route path='/friendrequests' element={<FriendRequests/>} />
+        <Route path='/createnewchat' element={<CreateChat/>} />
+        <Route path='/message/:chatId' element={<ChatPage/>} />
       </Routes>
     </BrowserRouter>
   )
