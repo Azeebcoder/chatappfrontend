@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/AxiosConfig.jsx";
+import socket from "../utils/socket.js"; // ✅ import socket
 import { useNavigate, useParams } from "react-router-dom";
 
 const ChatBox = ({ chatId }) => {
@@ -7,34 +8,61 @@ const ChatBox = ({ chatId }) => {
   const [content, setContent] = useState("");
   const { chatId: routeChatId } = useParams();
   const navigate = useNavigate();
-  let userId;
+  const [userId, setUserId] = useState("");
+
+  // ✅ Check user auth and get user ID
   useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const res = await axios.get("/auth/is-authenticated", {
-        withCredentials: true,
-      });
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get("/auth/is-authenticated", {
+          withCredentials: true,
+        });
 
-      const { success, message } = res.data;
-      const userId = res.data.data?._id || "YOUR_USER_ID"; // 🔁 Replace with real logged-in user ID (or from context/auth)
+        const { success, message } = res.data;
+        const id = res.data.data?._id;
+        if (id) setUserId(id);
 
-      if (message && message.toLowerCase().includes("not verified")) {
-        navigate("/verify-email");
+        if (message && message.toLowerCase().includes("not verified")) {
+          navigate("/verify-email");
+        }
+      } catch (err) {
+        const message = err.response?.data?.message || "";
+        if (message.toLowerCase().includes("not verified")) {
+          navigate("/verify-email");
+        } else {
+          console.log("Not authenticated:", message || "Unauthenticated");
+        }
       }
-    } catch (err) {
-      const message = err.response?.data?.message || "";
-      if (message.toLowerCase().includes("not verified")) {
-        navigate("/verify-email");  // <-- Redirect here when 403 and "User is not verified"
-      } else {
-        console.log("Not authenticated:", message || "Unauthenticated");
-      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // ✅ Join chat room on mount
+  useEffect(() => {
+    if (chatId) {
+      socket.emit("joinChat", chatId);
     }
-  };
 
-  checkAuth();
-}, [navigate]);
+    return () => {
+      socket.emit("leaveChat", chatId); // Optional if backend supports it
+    };
+  }, [chatId]);
 
+  // ✅ Listen for incoming socket messages
+  useEffect(() => {
+    socket.on("newMessage", (message) => {
+      if (message.chat === chatId) {
+        setMessages((prev) => [...prev, message]);
+      }
+    });
 
+    return () => {
+      socket.off("newMessage");
+    };
+  }, [chatId]);
+
+  // ✅ Fetch past messages
   const fetchMessages = async () => {
     try {
       const { data } = await axios.get(`/message/getmessage/${chatId}`);
@@ -45,6 +73,11 @@ const ChatBox = ({ chatId }) => {
     }
   };
 
+  useEffect(() => {
+    fetchMessages();
+  }, [chatId]);
+
+  // ✅ Send new message
   const sendMessage = async () => {
     if (!content.trim()) return;
     try {
@@ -53,16 +86,14 @@ const ChatBox = ({ chatId }) => {
         messageType: "text",
         attachments: [],
       });
+
+      // Message will also come via socket if backend emits it
       setMessages((prev) => [...prev, data]);
       setContent("");
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
-
-  useEffect(() => {
-    fetchMessages();
-  }, [chatId]);
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-5">
@@ -73,9 +104,7 @@ const ChatBox = ({ chatId }) => {
           return (
             <div
               key={msg._id}
-              className={`flex ${
-                isOwn ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`rounded-lg px-4 py-2 max-w-[75%] shadow-md ${
