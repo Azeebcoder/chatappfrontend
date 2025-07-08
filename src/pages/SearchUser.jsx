@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "../utils/AxiosConfig.jsx";
 import { FaUserPlus, FaSearch } from "react-icons/fa";
+import socket from "../utils/socket.js"; // Adjust the import path as necessary
 
 const SearchUser = () => {
   const [query, setQuery] = useState("");
@@ -19,6 +20,21 @@ const SearchUser = () => {
 
     return () => clearTimeout(delayDebounce);
   }, [query]);
+
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("✅ Connected to Socket.IO:", socket.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("❌ Disconnected from server");
+    });
+
+    // Cleanup on unmount
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -75,7 +91,10 @@ const SearchUser = () => {
             >
               <div className="flex items-center gap-3">
                 <img
-                  src={user.profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+                  src={
+                    user.profilePic ||
+                    "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                  }
                   alt={user.username}
                   className="w-10 h-10 rounded-full object-cover border border-gray-600"
                 />

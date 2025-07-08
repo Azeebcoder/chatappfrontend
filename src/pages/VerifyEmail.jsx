@@ -9,27 +9,29 @@ export default function VerifyOTP() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const alreadySent = localStorage.getItem("otpSent");
 
-    useEffect(() => {
-    
-
-    const sendOtpOnLoad = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get("/auth/send-otp");
-        if (res.data.success) {
-          toast.success("OTP sent to your email.");
-        } else {
-          toast.error(res.data.message || "Failed to send OTP");
+    if (!alreadySent) {
+      const sendOtpOnLoad = async () => {
+        setLoading(true);
+        try {
+          const res = await axios.get("/auth/send-otp");
+          if (res.data.success) {
+            toast.success("OTP sent to your email.");
+            localStorage.setItem("otpSent", "true");
+          } else {
+            toast.error(res.data.message || "Failed to send OTP");
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Error sending OTP");
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Error sending OTP");
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    sendOtpOnLoad();
+      sendOtpOnLoad();
+    }
   }, []);
 
   const handleSubmit = async (e) => {
@@ -39,6 +41,7 @@ export default function VerifyOTP() {
       const res = await axios.put("/auth/verify-otp", { otp });
       if (res.data.success) {
         toast.success(res.data.message || "Email verified!");
+        localStorage.removeItem("otpSent"); // Clean up after success
         navigate("/login");
       } else {
         toast.error(res.data.message || "Verification failed");
@@ -56,6 +59,7 @@ export default function VerifyOTP() {
       const res = await axios.get("/auth/send-otp");
       if (res.data.success) {
         toast.success(res.data.message || "OTP resent!");
+        localStorage.setItem("otpSent", "true"); // Update status
       } else {
         toast.error(res.data.message || "Failed to resend OTP");
       }
@@ -72,9 +76,9 @@ export default function VerifyOTP() {
         <h1 className="text-3xl font-bold mb-4">Verify Your Email</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <InputField
-             type="text"
+            type="text"
             name="otp"
-            placeholder="Enter Otp"
+            placeholder="Enter OTP"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
           />
