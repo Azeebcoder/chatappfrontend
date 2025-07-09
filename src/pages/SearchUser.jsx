@@ -104,18 +104,24 @@ const SearchUser = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => sendFriendRequest(user._id)}
-                disabled={friendRequests[user._id]}
-                className={`flex items-center px-3 py-1 rounded text-sm transition ${
-                  friendRequests[user._id]
-                    ? "bg-green-600 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                <FaUserPlus className="mr-1" />
-                {friendRequests[user._id] ? "Requested" : "Add"}
-              </button>
+              {user.isFriend ? (
+                <span className="text-green-500 font-semibold text-sm">
+                  Friends
+                </span>
+              ) : (
+                <button
+                  onClick={() => sendFriendRequest(user._id)}
+                  disabled={friendRequests[user._id]}
+                  className={`flex items-center px-3 py-1 rounded text-sm transition ${
+                    friendRequests[user._id]
+                      ? "bg-green-600 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  <FaUserPlus className="mr-1" />
+                  {friendRequests[user._id] ? "Requested" : "Add"}
+                </button>
+              )}
             </li>
           ))}
         </ul>

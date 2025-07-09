@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "../utils/AxiosConfig.jsx";
-import socket from "../utils/socket.js"; // ✅ import socket
+import socket from "../utils/socket.js";
 import { useNavigate, useParams } from "react-router-dom";
 
 const ChatBox = ({ chatId }) => {
@@ -9,28 +9,32 @@ const ChatBox = ({ chatId }) => {
   const { chatId: routeChatId } = useParams();
   const navigate = useNavigate();
   const [userId, setUserId] = useState("");
+  const bottomRef = useRef(null);
 
-  // ✅ Check user auth and get user ID
+  // ✅ Scroll to bottom when messages change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ✅ Check auth
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await axios.get("/auth/is-authenticated", {
           withCredentials: true,
         });
-
-        const { success, message } = res.data;
         const id = res.data.data?._id;
         if (id) setUserId(id);
 
-        if (message && message.toLowerCase().includes("not verified")) {
+        if (res.data.message?.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         }
       } catch (err) {
-        const message = err.response?.data?.message || "";
-        if (message.toLowerCase().includes("not verified")) {
+        const msg = err.response?.data?.message || "";
+        if (msg.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         } else {
-          console.log("Not authenticated:", message || "Unauthenticated");
+          console.log("Not authenticated:", msg || "Unauthenticated");
         }
       }
     };
@@ -38,48 +42,48 @@ const ChatBox = ({ chatId }) => {
     checkAuth();
   }, [navigate]);
 
-  // ✅ Join chat room on mount
+  // ✅ Join and leave room
   useEffect(() => {
-    if (chatId) {
-      socket.emit("joinChat", chatId);
-    }
-
+    if (chatId) socket.emit("joinChat", chatId);
     return () => {
-      socket.emit("leaveChat", chatId); // Optional if backend supports it
+      socket.emit("leaveChat", chatId);
     };
   }, [chatId]);
 
-  // ✅ Listen for incoming socket messages
+  // ✅ Listen for new messages via socket
   useEffect(() => {
-    socket.on("newMessage", (message) => {
+    const handleNewMessage = (message) => {
       if (message.chat === chatId) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) =>
+          prev.some((m) => m._id === message._id) ? prev : [...prev, message]
+        );
       }
-    });
+    };
 
+    socket.on("newMessage", handleNewMessage);
     return () => {
-      socket.off("newMessage");
+      socket.off("newMessage", handleNewMessage);
     };
   }, [chatId]);
 
   // ✅ Fetch past messages
-  const fetchMessages = async () => {
-    try {
-      const { data } = await axios.get(`/message/getmessage/${chatId}`);
-      setMessages(data);
-      console.log("Fetched messages:", data);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-    }
-  };
-
   useEffect(() => {
-    fetchMessages();
+    const fetchMessages = async () => {
+      try {
+        const { data } = await axios.get(`/message/getmessage/${chatId}`);
+        setMessages(data);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    if (chatId) fetchMessages();
   }, [chatId]);
 
-  // ✅ Send new message
+  // ✅ Send message
   const sendMessage = async () => {
     if (!content.trim()) return;
+
     try {
       const { data } = await axios.post(`/message/sendmessage/${chatId}`, {
         content,
@@ -87,8 +91,11 @@ const ChatBox = ({ chatId }) => {
         attachments: [],
       });
 
-      // Message will also come via socket if backend emits it
-      setMessages((prev) => [...prev, data]);
+      // Do not add manually if socket also returns the message
+      setMessages((prev) =>
+        prev.some((m) => m._id === data._id) ? prev : [...prev, data]
+      );
+
       setContent("");
     } catch (error) {
       console.error("Error sending message:", error);
@@ -121,6 +128,7 @@ const ChatBox = ({ chatId }) => {
             </div>
           );
         })}
+        <div ref={bottomRef} />
       </div>
 
       {/* Input Box */}
