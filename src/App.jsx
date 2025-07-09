@@ -11,6 +11,7 @@ import FriendRequests from './pages/FriendRequests.jsx';
 import CreateChat from './pages/CreateNewChat.jsx';
 import ChatPage from './pages/ChatPage.jsx';
 import HomeLayout from '../src/layout/HomeLayout.jsx'; // New
+import UpdateProfile from './pages/UpdateProfile.jsx';
 
 
 const App = () => {
@@ -29,6 +30,7 @@ const App = () => {
           <Route path="friendrequests" element={<FriendRequests />} />
           <Route path="createnewchat" element={<CreateChat />} />
           <Route path="message/:chatId" element={<ChatPage />} />
+          <Route path="update-profile" element={<UpdateProfile />} />
         </Route>
       </Routes>
     </BrowserRouter>

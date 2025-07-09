@@ -7,6 +7,7 @@ import {
   FiMessageCircle,
   FiPlusCircle,
   FiLogOut,
+  FiUser,
 } from "react-icons/fi";
 
 const HomeLayout = () => {
@@ -43,8 +44,12 @@ const HomeLayout = () => {
             <NavLink to="/message/123" className={navStyle}>
               <FiMessageCircle /> Chats
             </NavLink>
+            <NavLink to="/update-profile" className={navStyle}>
+              <FiUser /> Update Profile
+            </NavLink>
           </nav>
         </div>
+
         <button
           onClick={handleLogout}
           className="text-red-500 hover:text-red-700 flex items-center gap-2"
