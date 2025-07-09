@@ -25,6 +25,16 @@ const UpdateProfile = () => {
     fetchUser();
   }, []);
 
+  useEffect(() => {
+    if (!profilePic) return;
+
+    const objectUrl = URL.createObjectURL(profilePic);
+    setPreview(objectUrl);
+
+    // Cleanup URL on component unmount or profilePic change
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [profilePic]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -33,17 +43,18 @@ const UpdateProfile = () => {
       const formData = new FormData();
       formData.append("name", name);
       if (password) formData.append("password", password);
-      if (profilePic) formData.append("file", profilePic);
+      if (profilePic) formData.append("profilePic", profilePic); // ✅ name must match backend
 
       const { data } = await axios.put("/auth/update-profile", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        withCredentials: true,
       });
 
       toast.success("Profile updated");
       setPassword("");
-      setPreview(data.user.profilePic);
+      setPreview(data.user.profilePic); // Update preview after saving
     } catch (error) {
       const msg = error?.response?.data?.message || "Update failed";
       toast.error(msg);
@@ -54,8 +65,12 @@ const UpdateProfile = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    if (!file || !file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
     setProfilePic(file);
-    setPreview(URL.createObjectURL(file));
   };
 
   const triggerFileInput = () => {
@@ -74,6 +89,7 @@ const UpdateProfile = () => {
               src={preview || "/default-avatar.png"}
               alt="Profile"
               onClick={triggerFileInput}
+              onLoad={() => console.log("Image loaded:", preview)}
               className="w-full h-full rounded-full object-cover border-4 border-purple-300 cursor-pointer"
             />
             <div
