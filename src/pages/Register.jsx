@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/AxiosConfig.jsx";
-import InputField from "../components/InputField.jsx";
-import SubmitButton from "../components/SubmitButton.jsx";
 import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera } from "lucide-react";
+import { Camera, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -16,6 +15,7 @@ export default function Register() {
 
   const [profilePic, setProfilePic] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -37,7 +37,6 @@ export default function Register() {
         let width = img.width;
         let height = img.height;
 
-        // Maintain aspect ratio
         if (width > height) {
           if (width > maxWidth) {
             height *= maxWidth / width;
@@ -89,10 +88,9 @@ export default function Register() {
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("username", formData.username);
-      formDataToSend.append("email", formData.email);
-      formDataToSend.append("password", formData.password);
+      Object.entries(formData).forEach(([key, value]) =>
+        formDataToSend.append(key, value)
+      );
       if (profilePic) {
         formDataToSend.append("profilePic", profilePic);
       }
@@ -109,10 +107,7 @@ export default function Register() {
       }
 
       toast.success(res.data.message || "Registration successful");
-
-      setTimeout(() => {
-        navigate("/verify-email");
-      }, 1000);
+      setTimeout(() => navigate("/verify-email"), 1000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Registration failed");
     } finally {
@@ -135,8 +130,8 @@ export default function Register() {
           navigate("/");
         }
       } catch (err) {
-        const message = err.response?.data?.message || "";
-        if (message.toLowerCase().includes("not verified")) {
+        const msg = err.response?.data?.message || "";
+        if (msg.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         }
       }
@@ -146,13 +141,34 @@ export default function Register() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4">
-      <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-2xl w-full max-w-md">
-        <h2 className="text-3xl font-extrabold mb-6 text-center text-blue-700">
-          Create Account
-        </h2>
+    <div className="relative min-h-screen bg-gray-900 overflow-hidden flex items-center justify-center px-4">
+      {/* Animated Background */}
+      <motion.div
+        className="absolute w-72 h-72 bg-purple-600 rounded-full opacity-30 blur-3xl"
+        animate={{ x: [0, 200, 0], y: [0, -200, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute w-96 h-96 bg-pink-500 rounded-full opacity-20 blur-2xl top-20 left-20"
+        animate={{ x: [-100, 100, -100], y: [100, -100, 100] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute w-80 h-80 bg-blue-500 rounded-full opacity-25 blur-2xl bottom-10 right-10"
+        animate={{ x: [100, -100, 100], y: [-50, 50, -50] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      />
 
-        {/* 👤 Profile Image Section */}
+      {/* Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="relative z-10 bg-white/10 backdrop-blur-lg p-8 sm:p-10 rounded-2xl shadow-2xl w-full max-w-md text-white"
+      >
+        <h2 className="text-3xl font-bold text-center mb-6">Create Account</h2>
+
+        {/* Profile Pic */}
         <div className="flex justify-center mb-6 relative">
           <div className="relative w-28 h-28">
             <img
@@ -161,13 +177,13 @@ export default function Register() {
                 "https://cdn-icons-png.flaticon.com/512/149/149071.png"
               }
               alt="Preview"
-              className="w-28 h-28 rounded-full object-cover border-2 border-blue-300 shadow"
+              className="w-28 h-28 rounded-full object-cover border-2 border-purple-400 shadow-lg"
             />
             <label
               htmlFor="profileInput"
-              className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow cursor-pointer hover:bg-blue-50"
+              className="absolute bottom-0 right-0 bg-white text-purple-600 p-2 rounded-full shadow-md cursor-pointer hover:bg-gray-100"
             >
-              <Camera size={20} className="text-blue-600" />
+              <Camera size={18} />
             </label>
             <input
               id="profileInput"
@@ -179,49 +195,76 @@ export default function Register() {
           </div>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <InputField
+          <input
             type="text"
             name="name"
             placeholder="Full Name"
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-600 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={formData.name}
             onChange={handleChange}
+            required
           />
-          <InputField
+          <input
             type="text"
             name="username"
             placeholder="Username"
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-600 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={formData.username}
             onChange={handleChange}
+            required
           />
-          <InputField
+          <input
             type="email"
             name="email"
             placeholder="Email"
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-600 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={formData.email}
             onChange={handleChange}
-          />
-          <InputField
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
+            required
           />
 
-          <SubmitButton loading={loading} text="Register" />
+          {/* Password with Toggle */}
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              className="w-full px-4 py-3 pr-12 rounded-lg bg-gray-800 border border-gray-600 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+            <span
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </span>
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 transition font-semibold"
+          >
+            {loading ? "Creating..." : "Register"}
+          </motion.button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
+        <p className="text-center text-sm text-gray-300 mt-4">
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-blue-600 font-semibold hover:underline hover:text-blue-800 transition"
+            className="text-purple-400 hover:underline hover:text-purple-300"
           >
-            Login Here
+            Login
           </Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
