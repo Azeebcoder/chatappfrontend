@@ -67,7 +67,6 @@ const ChatBox = ({ chatId }) => {
         );
       }
     };
-
     socket.on("newMessage", handleNewMessage);
     return () => {
       socket.off("newMessage", handleNewMessage);
@@ -107,14 +106,10 @@ const ChatBox = ({ chatId }) => {
   const getInitial = (name) => name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full h-screen bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white flex flex-col"
-    >
+    <div className="w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white">
       {/* Header */}
       {chatUser && (
-        <div className="sticky top-0 z-20 flex items-center gap-4 px-4 py-3 backdrop-blur bg-white/10 border-b border-white/10 shadow-sm">
+        <div className="sticky top-0 z-30 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
           {chatUser?.profilePic ? (
             <img
               src={chatUser.profilePic}
@@ -127,19 +122,14 @@ const ChatBox = ({ chatId }) => {
             </div>
           )}
           <div>
-            <h2 className="text-base font-semibold text-white leading-tight">
-              {chatUser.name || "Unknown"}
-            </h2>
+            <h2 className="text-base font-semibold">{chatUser.name || "Unknown"}</h2>
             <p className="text-xs text-gray-300">@{chatUser.username}</p>
           </div>
         </div>
       )}
 
-      {/* Chat messages */}
-      <motion.div
-        layout
-        className="flex-1 overflow-y-auto space-y-3 px-4 py-4 pb-36 backdrop-blur-sm bg-white/5 border border-white/10 shadow-inner rounded-xl"
-      >
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-16 sm:pb-0">
         <AnimatePresence>
           {messages.map((msg) => {
             const isOwn = msg.sender._id === userId;
@@ -190,15 +180,10 @@ const ChatBox = ({ chatId }) => {
           })}
         </AnimatePresence>
         <div ref={bottomRef} />
-      </motion.div>
+      </div>
 
-      {/* Input Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="sticky bottom-0 z-20 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10"
-      >
+      {/* Input */}
+      <div className="sticky bottom-0 z-30 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
         <form onSubmit={sendMessage} className="flex w-full gap-3">
           <input
             type="text"
@@ -214,8 +199,8 @@ const ChatBox = ({ chatId }) => {
             Send
           </motion.button>
         </form>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 };
 

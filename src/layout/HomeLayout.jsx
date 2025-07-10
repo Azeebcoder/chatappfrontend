@@ -43,7 +43,7 @@ const HomeLayout = () => {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex flex-row h-screen overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col justify-between w-64 bg-white shadow-lg p-6 border-r border-gray-200">
         <div>
@@ -131,9 +131,7 @@ const HomeLayout = () => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main
-        className={`flex-1 overflow-y-auto ${isMobile ? "pt-14" : ""} bg-gray-100`}
-      >
+      <main className={`flex-1 flex flex-col relative ${isMobile ? "pt-14" : ""} bg-gray-100`}>
         <Outlet />
       </main>
     </div>
