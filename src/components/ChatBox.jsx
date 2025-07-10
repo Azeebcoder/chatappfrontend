@@ -153,20 +153,20 @@ const ChatBox = ({ chatId }) => {
                 className={`w-full flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
               >
                 {!isOwn && (
-                  <div className="min-w-9 w-9 h-9">
-                    {chatUser.profilePic ? (
-                      <img
-                        src={chatUser.profilePic}
-                        alt="avatar"
-                        className="w-9 h-9 rounded-full object-cover mt-1 border border-white/20"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold mt-1">
-                        {getInitial(msg.sender.name || msg.sender.username)}
-                      </div>
-                    )}
-                  </div>
-                )}
+  <div className="min-w-9 w-9 h-9">
+    {chatUser.profilePic ? (
+      <img
+        src={chatUser.profilePic}
+        alt="avatar"
+        className="w-9 h-9 rounded-full object-cover mt-1 border border-white/20"
+      />
+    ) : (
+      <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold mt-1">
+        {getInitial(chatUser.username)}
+      </div>
+    )}
+  </div>
+)}
                 <div
                   className={`rounded-2xl px-5 py-3 max-w-xs md:max-w-md shadow-xl ${
                     isOwn
