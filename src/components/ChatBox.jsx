@@ -10,6 +10,7 @@ const ChatBox = ({ chatId }) => {
   const { chatId: routeChatId } = useParams();
   const navigate = useNavigate();
   const [userId, setUserId] = useState("");
+  const [chatUser, setChatUser] = useState(null);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -38,6 +39,18 @@ const ChatBox = ({ chatId }) => {
     };
     checkAuth();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchChatUser = async () => {
+      try {
+        const { data } = await axios.get(`/message/user/${chatId}`);
+        setChatUser(data);
+      } catch (error) {
+        console.error("Error fetching chat user:", error);
+      }
+    };
+    if (chatId) fetchChatUser();
+  }, [chatId]);
 
   useEffect(() => {
     if (chatId) socket.emit("joinChat", chatId);
@@ -91,16 +104,41 @@ const ChatBox = ({ chatId }) => {
     }
   };
 
+  const getInitial = (name) => name?.charAt(0)?.toUpperCase() || "U";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="w-full h-screen bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] p-4 md:p-6 text-white flex flex-col"
+      className="w-full h-screen bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white flex flex-col"
     >
-      {/* Chat container */}
+      {/* Header */}
+      {chatUser && (
+        <div className="sticky top-0 z-20 flex items-center gap-4 px-4 py-3 backdrop-blur bg-white/10 border-b border-white/10 shadow-sm">
+          {chatUser?.profilePic ? (
+            <img
+              src={chatUser.profilePic}
+              alt="profile"
+              className="w-10 h-10 rounded-full object-cover border border-white/20"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold border border-white/20">
+              {getInitial(chatUser.username)}
+            </div>
+          )}
+          <div>
+            <h2 className="text-base font-semibold text-white leading-tight">
+              {chatUser.name || "Unknown"}
+            </h2>
+            <p className="text-xs text-gray-300">@{chatUser.username}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Chat messages */}
       <motion.div
         layout
-        className="flex-1 overflow-y-auto space-y-3 p-4 rounded-xl backdrop-blur-sm bg-white/5 border border-white/10 shadow-inner"
+        className="flex-1 overflow-y-auto space-y-3 px-4 py-4 pb-36 backdrop-blur-sm bg-white/5 border border-white/10 shadow-inner rounded-xl"
       >
         <AnimatePresence>
           {messages.map((msg) => {
@@ -112,10 +150,23 @@ const ChatBox = ({ chatId }) => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`w-full flex ${
-                  isOwn ? "justify-end" : "justify-start"
-                }`}
+                className={`w-full flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
               >
+                {!isOwn && (
+                  <div className="min-w-9 w-9 h-9">
+                    {chatUser.profilePic ? (
+                      <img
+                        src={chatUser.profilePic}
+                        alt="avatar"
+                        className="w-9 h-9 rounded-full object-cover mt-1 border border-white/20"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold mt-1">
+                        {getInitial(msg.sender.name || msg.sender.username)}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div
                   className={`rounded-2xl px-5 py-3 max-w-xs md:max-w-md shadow-xl ${
                     isOwn
@@ -123,9 +174,11 @@ const ChatBox = ({ chatId }) => {
                       : "bg-gray-800 text-white rounded-bl-none"
                   }`}
                 >
-                  <p className="text-xs font-semibold text-gray-300 mb-1">
-                    {msg.sender.username}
-                  </p>
+                  {!isOwn && (
+                    <p className="text-xs font-semibold text-gray-300 mb-1">
+                      {msg.sender.username}
+                    </p>
+                  )}
                   <p className="text-sm leading-snug break-words">{msg.content}</p>
                 </div>
               </motion.div>
@@ -135,27 +188,27 @@ const ChatBox = ({ chatId }) => {
         <div ref={bottomRef} />
       </motion.div>
 
-      {/* Input Box */}
+      {/* Input Bar */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="mt-4 flex gap-3"
+        className="sticky bottom-0 z-20 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10"
       >
-        <form action="sendmessage" onSubmit={sendMessage} className="flex w-full gap-3">
+        <form onSubmit={sendMessage} className="flex w-full gap-3">
           <input
-          type="text"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1 px-4 py-2 rounded-xl bg-white/10 backdrop-blur text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-xl font-semibold shadow-md transition-all"
-        >
-          Send
-        </motion.button>
+            type="text"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 px-4 py-2 rounded-xl bg-white/10 backdrop-blur text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          />
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-xl font-semibold shadow-md transition-all"
+          >
+            Send
+          </motion.button>
         </form>
       </motion.div>
     </motion.div>
