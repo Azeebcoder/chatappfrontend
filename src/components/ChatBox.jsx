@@ -12,6 +12,7 @@ const ChatBox = ({ chatId }) => {
   const [userId, setUserId] = useState("");
   const [chatUser, setChatUser] = useState(null);
   const bottomRef = useRef(null);
+  const inputRef = useRef(null); // to keep input focused on mobile
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -92,9 +93,11 @@ const ChatBox = ({ chatId }) => {
   }, [chatId]);
 
   const sendMessage = async (e, retryTempId = null) => {
-    e?.preventDefault();
+    e?.preventDefault?.();
     const trimmed = content.trim();
     if (!trimmed && !retryTempId) return;
+
+    inputRef.current?.focus(); // Refocus input on mobile
 
     const tempId = retryTempId || `temp-${Date.now()}`;
     const msgContent = retryTempId
@@ -126,7 +129,6 @@ const ChatBox = ({ chatId }) => {
       });
 
       setMessages((prev) => {
-        // Remove temp if exists and add actual only if not present
         const withoutTemp = prev.filter((m) => m._id !== tempId);
         const alreadyExists = withoutTemp.some((m) => m._id === data._id);
         return alreadyExists ? withoutTemp : [...withoutTemp, data];
@@ -144,10 +146,10 @@ const ChatBox = ({ chatId }) => {
   const getInitial = (name) => name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <div className="w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white">
+    <div className="w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
       {/* Header */}
       {chatUser && (
-        <div className="sticky top-0 z-30 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
+        <div className="sticky top-0 z-50 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
           {chatUser?.profilePic ? (
             <img
               src={chatUser.profilePic}
@@ -167,7 +169,7 @@ const ChatBox = ({ chatId }) => {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-16 sm:pb-0">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20">
         <AnimatePresence>
           {messages.map((msg) => {
             const isOwn = msg.sender._id === userId;
@@ -178,9 +180,7 @@ const ChatBox = ({ chatId }) => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`w-full flex ${
-                  isOwn ? "justify-end" : "justify-start"
-                } gap-2`}
+                className={`w-full flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
               >
                 {!isOwn && (
                   <div className="min-w-9 w-9 h-9">
@@ -233,23 +233,30 @@ const ChatBox = ({ chatId }) => {
 
       {/* Input */}
       <div className="sticky bottom-0 z-30 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
-        <form onSubmit={sendMessage} className="flex w-full gap-3">
+        <div className="flex w-full gap-3">
           <input
+            ref={inputRef}
             type="text"
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             placeholder="Type your message..."
             className="flex-1 px-4 py-2 rounded-xl bg-white/10 backdrop-blur text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
           <motion.button
-            type="submit"
+            onClick={() => sendMessage()}
             whileTap={{ scale: 0.95 }}
             disabled={!content.trim()}
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-xl font-semibold shadow-md transition-all"
           >
             Send
           </motion.button>
-        </form>
+        </div>
       </div>
     </div>
   );
