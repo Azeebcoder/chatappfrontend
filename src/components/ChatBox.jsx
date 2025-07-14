@@ -62,11 +62,17 @@ const ChatBox = ({ chatId }) => {
   useEffect(() => {
     const handleNewMessage = (message) => {
       if (message.chat === chatId) {
-        setMessages((prev) =>
-          prev.some((m) => m._id === message._id) ? prev : [...prev, message]
-        );
+        setMessages((prev) => {
+          const alreadyExists = prev.some(
+            (m) =>
+              m._id === message._id ||
+              (m.status === "sending" && m.content === message.content)
+          );
+          return alreadyExists ? prev : [...prev, message];
+        });
       }
     };
+
     socket.on("newMessage", handleNewMessage);
     return () => {
       socket.off("newMessage", handleNewMessage);
@@ -85,21 +91,53 @@ const ChatBox = ({ chatId }) => {
     if (chatId) fetchMessages();
   }, [chatId]);
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!content.trim()) return;
+  const sendMessage = async (e, retryTempId = null) => {
+    e?.preventDefault();
+    const trimmed = content.trim();
+    if (!trimmed && !retryTempId) return;
+
+    const tempId = retryTempId || `temp-${Date.now()}`;
+    const msgContent = retryTempId
+      ? messages.find((m) => m._id === retryTempId)?.content
+      : trimmed;
+
+    const tempMessage = {
+      _id: tempId,
+      content: msgContent,
+      sender: { _id: userId, username: "You" },
+      chat: chatId,
+      status: "sending",
+    };
+
+    if (!retryTempId) {
+      setMessages((prev) => [...prev, tempMessage]);
+      setContent("");
+    } else {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === retryTempId ? tempMessage : m))
+      );
+    }
+
     try {
       const { data } = await axios.post(`/message/sendmessage/${chatId}`, {
-        content,
+        content: msgContent,
         messageType: "text",
         attachments: [],
       });
-      setMessages((prev) =>
-        prev.some((m) => m._id === data._id) ? prev : [...prev, data]
-      );
-      setContent("");
+
+      setMessages((prev) => {
+        // Remove temp if exists and add actual only if not present
+        const withoutTemp = prev.filter((m) => m._id !== tempId);
+        const alreadyExists = withoutTemp.some((m) => m._id === data._id);
+        return alreadyExists ? withoutTemp : [...withoutTemp, data];
+      });
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Message failed:", error);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === tempId ? { ...msg, status: "failed" } : msg
+        )
+      );
     }
   };
 
@@ -160,7 +198,7 @@ const ChatBox = ({ chatId }) => {
                   </div>
                 )}
                 <div
-                  className={`rounded-2xl px-5 py-3 max-w-xs md:max-w-md shadow-xl ${
+                  className={`rounded-2xl px-5 py-3 max-w-xs md:max-w-md shadow-xl relative ${
                     isOwn
                       ? "bg-blue-600 text-white rounded-br-none"
                       : "bg-gray-800 text-white rounded-bl-none"
@@ -171,9 +209,20 @@ const ChatBox = ({ chatId }) => {
                       {msg.sender.username}
                     </p>
                   )}
-                  <p className="text-sm leading-snug break-words">
-                    {msg.content}
-                  </p>
+                  <p className="text-sm leading-snug break-words">{msg.content}</p>
+
+                  {/* Status Indicators */}
+                  {isOwn && msg.status === "sending" && (
+                    <span className="absolute -bottom-4 right-2 text-xs text-gray-400">Sending...</span>
+                  )}
+                  {isOwn && msg.status === "failed" && (
+                    <button
+                      className="absolute -bottom-4 right-2 text-xs text-red-400 underline"
+                      onClick={(e) => sendMessage(e, msg._id)}
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );
@@ -193,8 +242,10 @@ const ChatBox = ({ chatId }) => {
             className="flex-1 px-4 py-2 rounded-xl bg-white/10 backdrop-blur text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
           <motion.button
+            type="submit"
             whileTap={{ scale: 0.95 }}
-            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-xl font-semibold shadow-md transition-all"
+            disabled={!content.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-2 rounded-xl font-semibold shadow-md transition-all"
           >
             Send
           </motion.button>
