@@ -26,11 +26,12 @@ const ChatBox = ({ chatId }) => {
     notificationAudio.current.load();
   }, []);
 
+  // Scroll to bottom on new messages (if near bottom)
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     if (isNearBottom) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -139,14 +140,6 @@ const ChatBox = ({ chatId }) => {
     }
   };
 
-  useEffect(() => {
-    const handleResize = () => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const sendMessage = async (e, retryTempId = null) => {
     e?.preventDefault?.();
     const trimmed = content.trim();
@@ -197,7 +190,7 @@ const ChatBox = ({ chatId }) => {
   const getInitial = (name) => name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
       {chatUser && (
         <div className="sticky top-0 z-50 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
           {chatUser?.profilePic ? (
@@ -221,8 +214,7 @@ const ChatBox = ({ chatId }) => {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-3 space-y-3"
-        style={{ paddingBottom: "6rem" }}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20"
       >
         {hasMore && isLoadingMore && (
           <div className="text-center text-sm text-gray-400 mb-2">Loading older messages...</div>
