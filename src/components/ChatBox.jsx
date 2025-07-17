@@ -7,32 +7,41 @@ import { motion, AnimatePresence } from "framer-motion";
 const ChatBox = ({ chatId }) => {
   const [messages, setMessages] = useState([]);
   const [content, setContent] = useState("");
-  const { chatId: routeChatId } = useParams();
-  const navigate = useNavigate();
   const [userId, setUserId] = useState("");
   const [chatUser, setChatUser] = useState(null);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-  const notificationAudio = useRef(null); // for sound
 
-  // Load notification sound
+  const inputRef = useRef(null);
+  const bottomRef = useRef(null);
+  const containerRef = useRef(null);
+  const notificationAudio = useRef(null);
+
+  const { chatId: routeChatId } = useParams();
+  const navigate = useNavigate();
+
+  const [limit] = useState(20);
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Notification Sound
   useEffect(() => {
     notificationAudio.current = new Audio("/notification.mp3");
     notificationAudio.current.load();
   }, []);
 
+  // Scroll to bottom on message update
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Auth Check
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await axios.get("/auth/is-authenticated", {
-          withCredentials: true,
-        });
+        const res = await axios.get("/auth/is-authenticated", { withCredentials: true });
         const id = res.data.data?._id;
         if (id) setUserId(id);
+
         if (res.data.message?.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         }
@@ -48,62 +57,85 @@ const ChatBox = ({ chatId }) => {
     checkAuth();
   }, [navigate]);
 
+  // Chat User Info
   useEffect(() => {
     const fetchChatUser = async () => {
       try {
         const { data } = await axios.get(`/message/user/${chatId}`);
         setChatUser(data);
-      } catch (error) {
-        console.error("Error fetching chat user:", error);
+      } catch (err) {
+        console.error("Error fetching chat user:", err);
       }
     };
     if (chatId) fetchChatUser();
   }, [chatId]);
 
+  // Join/Leave socket room
   useEffect(() => {
     if (chatId) socket.emit("joinChat", chatId);
-    return () => {
-      socket.emit("leaveChat", chatId);
-    };
+    return () => socket.emit("leaveChat", chatId);
   }, [chatId]);
 
+  // Incoming messages
   useEffect(() => {
     const handleNewMessage = (message) => {
       if (message.chat === chatId) {
         setMessages((prev) => {
-          const alreadyExists = prev.some(
-            (m) =>
-              m._id === message._id ||
-              (m.status === "sending" && m.content === message.content)
+          const exists = prev.some(
+            (m) => m._id === message._id || (m.status === "sending" && m.content === message.content)
           );
-          return alreadyExists ? prev : [...prev, message];
+          return exists ? prev : [...prev, message];
         });
 
         if (message.sender._id !== userId) {
-          notificationAudio.current?.play().catch((err) => {
-            console.warn("Notification sound failed:", err);
-          });
+          notificationAudio.current?.play().catch((err) => console.warn("Sound failed:", err));
         }
       }
     };
 
     socket.on("newMessage", handleNewMessage);
-    return () => {
-      socket.off("newMessage", handleNewMessage);
-    };
+    return () => socket.off("newMessage", handleNewMessage);
   }, [chatId, userId]);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const { data } = await axios.get(`/message/getmessage/${chatId}`);
-        setMessages(data);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
+  // Load messages (initial or lazy load)
+  const fetchMessages = async (loadMore = false) => {
+    if (isLoadingMore) return;
+    try {
+      setIsLoadingMore(true);
+      const res = await axios.get(`/message/getmessage/${chatId}?limit=${limit}&skip=${loadMore ? skip : 0}`);
+      const newMessages = res.data;
+
+      if (loadMore) {
+        setMessages((prev) => [...newMessages, ...prev]);
+        setSkip((prev) => prev + newMessages.length);
+      } else {
+        setMessages(newMessages);
+        setSkip(newMessages.length);
       }
-    };
-    if (chatId) fetchMessages();
+
+      if (newMessages.length < limit) setHasMore(false);
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    if (chatId) {
+      setSkip(0);
+      setHasMore(true);
+      fetchMessages(false);
+    }
   }, [chatId]);
+
+  // Scroll to top lazy load
+  const handleScroll = () => {
+    const container = containerRef.current;
+    if (container && hasMore && container.scrollTop < 50) {
+      fetchMessages(true);
+    }
+  };
 
   const sendMessage = async (e, retryTempId = null) => {
     e?.preventDefault?.();
@@ -111,7 +143,6 @@ const ChatBox = ({ chatId }) => {
     if (!trimmed && !retryTempId) return;
 
     inputRef.current?.focus();
-
     const tempId = retryTempId || `temp-${Date.now()}`;
     const msgContent = retryTempId
       ? messages.find((m) => m._id === retryTempId)?.content
@@ -129,9 +160,7 @@ const ChatBox = ({ chatId }) => {
       setMessages((prev) => [...prev, tempMessage]);
       setContent("");
     } else {
-      setMessages((prev) =>
-        prev.map((m) => (m._id === retryTempId ? tempMessage : m))
-      );
+      setMessages((prev) => prev.map((m) => (m._id === retryTempId ? tempMessage : m)));
     }
 
     try {
@@ -143,16 +172,12 @@ const ChatBox = ({ chatId }) => {
 
       setMessages((prev) => {
         const withoutTemp = prev.filter((m) => m._id !== tempId);
-        const alreadyExists = withoutTemp.some((m) => m._id === data._id);
-        return alreadyExists ? withoutTemp : [...withoutTemp, data];
+        const exists = withoutTemp.some((m) => m._id === data._id);
+        return exists ? withoutTemp : [...withoutTemp, data];
       });
-    } catch (error) {
-      console.error("Message failed:", error);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === tempId ? { ...msg, status: "failed" } : msg
-        )
-      );
+    } catch (err) {
+      console.error("Message failed:", err);
+      setMessages((prev) => prev.map((m) => m._id === tempId ? { ...m, status: "failed" } : m));
     }
   };
 
@@ -180,7 +205,15 @@ const ChatBox = ({ chatId }) => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20">
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20"
+      >
+        {hasMore && (
+          <div className="text-center text-sm text-gray-400 mb-2">Loading more...</div>
+        )}
+
         <AnimatePresence>
           {messages.map((msg) => {
             const isOwn = msg.sender._id === userId;
@@ -237,6 +270,7 @@ const ChatBox = ({ chatId }) => {
             );
           })}
         </AnimatePresence>
+
         <div ref={bottomRef} />
       </div>
 
