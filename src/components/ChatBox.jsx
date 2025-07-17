@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef } from "react";
 import axios from "../utils/AxiosConfig.jsx";
 import socket from "../utils/socket.js";
 import { useNavigate, useParams } from "react-router-dom";
@@ -9,39 +9,40 @@ const ChatBox = ({ chatId }) => {
   const [content, setContent] = useState("");
   const [userId, setUserId] = useState("");
   const [chatUser, setChatUser] = useState(null);
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [limit] = useState(20);
 
   const inputRef = useRef(null);
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
   const notificationAudio = useRef(null);
-
-  const { chatId: routeChatId } = useParams();
   const navigate = useNavigate();
+  const { chatId: routeChatId } = useParams();
 
-  const [limit] = useState(20);
-  const [skip, setSkip] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  // Notification Sound
   useEffect(() => {
     notificationAudio.current = new Audio("/notification.mp3");
     notificationAudio.current.load();
   }, []);
 
-  // Scroll to bottom on message update
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  // Scroll to bottom on new messages (if near bottom)
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    if (isNearBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
-  // Auth Check
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await axios.get("/auth/is-authenticated", { withCredentials: true });
         const id = res.data.data?._id;
         if (id) setUserId(id);
-
         if (res.data.message?.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         }
@@ -49,15 +50,12 @@ const ChatBox = ({ chatId }) => {
         const msg = err.response?.data?.message || "";
         if (msg.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
-        } else {
-          console.log("Not authenticated:", msg || "Unauthenticated");
         }
       }
     };
     checkAuth();
   }, [navigate]);
 
-  // Chat User Info
   useEffect(() => {
     const fetchChatUser = async () => {
       try {
@@ -70,20 +68,16 @@ const ChatBox = ({ chatId }) => {
     if (chatId) fetchChatUser();
   }, [chatId]);
 
-  // Join/Leave socket room
   useEffect(() => {
     if (chatId) socket.emit("joinChat", chatId);
     return () => socket.emit("leaveChat", chatId);
   }, [chatId]);
 
-  // Incoming messages
   useEffect(() => {
     const handleNewMessage = (message) => {
       if (message.chat === chatId) {
         setMessages((prev) => {
-          const exists = prev.some(
-            (m) => m._id === message._id || (m.status === "sending" && m.content === message.content)
-          );
+          const exists = prev.some((m) => m._id === message._id);
           return exists ? prev : [...prev, message];
         });
 
@@ -97,7 +91,6 @@ const ChatBox = ({ chatId }) => {
     return () => socket.off("newMessage", handleNewMessage);
   }, [chatId, userId]);
 
-  // Load messages (initial or lazy load)
   const fetchMessages = async (loadMore = false) => {
     if (isLoadingMore) return;
     try {
@@ -106,16 +99,27 @@ const ChatBox = ({ chatId }) => {
       const newMessages = res.data;
 
       if (loadMore) {
+        const container = containerRef.current;
+        const prevScrollHeight = container.scrollHeight;
+
         setMessages((prev) => [...newMessages, ...prev]);
         setSkip((prev) => prev + newMessages.length);
+
+        requestAnimationFrame(() => {
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop = newScrollHeight - prevScrollHeight;
+        });
       } else {
         setMessages(newMessages);
         setSkip(newMessages.length);
+        requestAnimationFrame(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "auto" });
+        });
       }
 
       if (newMessages.length < limit) setHasMore(false);
     } catch (err) {
-      console.error("Error fetching messages:", err);
+      console.error("Failed to fetch messages:", err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -129,7 +133,6 @@ const ChatBox = ({ chatId }) => {
     }
   }, [chatId]);
 
-  // Scroll to top lazy load
   const handleScroll = () => {
     const container = containerRef.current;
     if (container && hasMore && container.scrollTop < 50) {
@@ -160,7 +163,9 @@ const ChatBox = ({ chatId }) => {
       setMessages((prev) => [...prev, tempMessage]);
       setContent("");
     } else {
-      setMessages((prev) => prev.map((m) => (m._id === retryTempId ? tempMessage : m)));
+      setMessages((prev) =>
+        prev.map((m) => (m._id === retryTempId ? tempMessage : m))
+      );
     }
 
     try {
@@ -171,13 +176,14 @@ const ChatBox = ({ chatId }) => {
       });
 
       setMessages((prev) => {
-        const withoutTemp = prev.filter((m) => m._id !== tempId);
-        const exists = withoutTemp.some((m) => m._id === data._id);
-        return exists ? withoutTemp : [...withoutTemp, data];
+        const filtered = prev.filter((m) => m._id !== tempId);
+        const exists = filtered.some((m) => m._id === data._id);
+        return exists ? filtered : [...filtered, data];
       });
     } catch (err) {
-      console.error("Message failed:", err);
-      setMessages((prev) => prev.map((m) => m._id === tempId ? { ...m, status: "failed" } : m));
+      setMessages((prev) =>
+        prev.map((m) => (m._id === tempId ? { ...m, status: "failed" } : m))
+      );
     }
   };
 
@@ -210,8 +216,8 @@ const ChatBox = ({ chatId }) => {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20"
       >
-        {hasMore && (
-          <div className="text-center text-sm text-gray-400 mb-2">Loading more...</div>
+        {hasMore && isLoadingMore && (
+          <div className="text-center text-sm text-gray-400 mb-2">Loading older messages...</div>
         )}
 
         <AnimatePresence>
