@@ -12,7 +12,14 @@ const ChatBox = ({ chatId }) => {
   const [userId, setUserId] = useState("");
   const [chatUser, setChatUser] = useState(null);
   const bottomRef = useRef(null);
-  const inputRef = useRef(null); // to keep input focused on mobile
+  const inputRef = useRef(null);
+  const notificationAudio = useRef(null); // for sound
+
+  // Load notification sound
+  useEffect(() => {
+    notificationAudio.current = new Audio("/notification.mp3");
+    notificationAudio.current.load();
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,6 +78,12 @@ const ChatBox = ({ chatId }) => {
           );
           return alreadyExists ? prev : [...prev, message];
         });
+
+        if (message.sender._id !== userId) {
+          notificationAudio.current?.play().catch((err) => {
+            console.warn("Notification sound failed:", err);
+          });
+        }
       }
     };
 
@@ -78,7 +91,7 @@ const ChatBox = ({ chatId }) => {
     return () => {
       socket.off("newMessage", handleNewMessage);
     };
-  }, [chatId]);
+  }, [chatId, userId]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -97,7 +110,7 @@ const ChatBox = ({ chatId }) => {
     const trimmed = content.trim();
     if (!trimmed && !retryTempId) return;
 
-    inputRef.current?.focus(); // Refocus input on mobile
+    inputRef.current?.focus();
 
     const tempId = retryTempId || `temp-${Date.now()}`;
     const msgContent = retryTempId
@@ -147,7 +160,6 @@ const ChatBox = ({ chatId }) => {
 
   return (
     <div className="w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
-      {/* Header */}
       {chatUser && (
         <div className="sticky top-0 z-50 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
           {chatUser?.profilePic ? (
@@ -168,7 +180,6 @@ const ChatBox = ({ chatId }) => {
         </div>
       )}
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20">
         <AnimatePresence>
           {messages.map((msg) => {
@@ -210,8 +221,6 @@ const ChatBox = ({ chatId }) => {
                     </p>
                   )}
                   <p className="text-sm leading-snug break-words">{msg.content}</p>
-
-                  {/* Status Indicators */}
                   {isOwn && msg.status === "sending" && (
                     <span className="absolute -bottom-4 right-2 text-xs text-gray-400">Sending...</span>
                   )}
@@ -231,7 +240,6 @@ const ChatBox = ({ chatId }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div className="sticky bottom-0 z-30 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
         <div className="flex w-full gap-3">
           <input
