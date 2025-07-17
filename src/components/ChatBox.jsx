@@ -13,7 +13,7 @@ const ChatBox = ({ chatId }) => {
   const [chatUser, setChatUser] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-  const notificationAudio = useRef(null); // for sound
+  const notificationAudio = useRef(null);
 
   // Load notification sound
   useEffect(() => {
@@ -69,6 +69,14 @@ const ChatBox = ({ chatId }) => {
 
   useEffect(() => {
     const handleNewMessage = (message) => {
+      // 🔔 Always play sound if it's not your own message
+      if (message.sender._id !== userId) {
+        notificationAudio.current?.play().catch((err) => {
+          console.warn("Notification sound failed:", err);
+        });
+      }
+
+      // 📥 Only update messages if the current chat is active
       if (message.chat === chatId) {
         setMessages((prev) => {
           const alreadyExists = prev.some(
@@ -78,12 +86,6 @@ const ChatBox = ({ chatId }) => {
           );
           return alreadyExists ? prev : [...prev, message];
         });
-
-        if (message.sender._id !== userId) {
-          notificationAudio.current?.play().catch((err) => {
-            console.warn("Notification sound failed:", err);
-          });
-        }
       }
     };
 
@@ -195,7 +197,7 @@ const ChatBox = ({ chatId }) => {
               >
                 {!isOwn && (
                   <div className="min-w-9 w-9 h-9">
-                    {chatUser.profilePic ? (
+                    {chatUser?.profilePic ? (
                       <img
                         src={chatUser.profilePic}
                         alt="avatar"
@@ -203,7 +205,7 @@ const ChatBox = ({ chatId }) => {
                       />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold mt-1">
-                        {getInitial(chatUser.username)}
+                        {getInitial(chatUser?.username)}
                       </div>
                     )}
                   </div>
