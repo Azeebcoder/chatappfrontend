@@ -197,9 +197,10 @@ const ChatBox = ({ chatId }) => {
   const getInitial = (name) => name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
+    <div className="flex flex-col h-[100dvh] w-full bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
+
       {chatUser && (
-        <div className="sticky top-0 z-50 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
+        <div className="shrink-0 sticky top-0 z-50 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
           {chatUser?.profilePic ? (
             <img
               src={chatUser.profilePic}
@@ -288,7 +289,7 @@ const ChatBox = ({ chatId }) => {
         <div ref={bottomRef} />
       </div>
 
-      <div className="sticky bottom-0 z-30 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
+      <div className="shrink-0 sticky bottom-0 z-30 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
         <div className="flex w-full gap-3">
           <input
             ref={inputRef}
