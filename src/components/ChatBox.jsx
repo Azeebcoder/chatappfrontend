@@ -26,7 +26,6 @@ const ChatBox = ({ chatId }) => {
     notificationAudio.current.load();
   }, []);
 
-  // Scroll to bottom on new messages (if near bottom)
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -201,7 +200,7 @@ const ChatBox = ({ chatId }) => {
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold border border-white/20">
-              {getInitial(chatUser.username)}
+              {getInitial(chatUser?.username)}
             </div>
           )}
           <div>
@@ -232,9 +231,9 @@ const ChatBox = ({ chatId }) => {
                 transition={{ duration: 0.3 }}
                 className={`w-full flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
               >
-                {!isOwn && (
+                {!isOwn && chatUser && (
                   <div className="min-w-9 w-9 h-9">
-                    {chatUser.profilePic ? (
+                    {chatUser?.profilePic ? (
                       <img
                         src={chatUser.profilePic}
                         alt="avatar"
@@ -242,7 +241,7 @@ const ChatBox = ({ chatId }) => {
                       />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold mt-1">
-                        {getInitial(chatUser.username)}
+                        {getInitial(chatUser?.username)}
                       </div>
                     )}
                   </div>
