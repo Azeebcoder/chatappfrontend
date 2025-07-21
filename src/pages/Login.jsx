@@ -1,5 +1,3 @@
-// src/pages/Login.jsx
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -24,6 +22,13 @@ export default function Login() {
       const res = await axios.post("/auth/login", formData);
       if (res.data.success) {
         toast.success(res.data.message);
+
+        // ✅ Save userId and optionally user details to localStorage
+        localStorage.setItem("userId", res.data.user._id);
+        localStorage.setItem("username", res.data.user.username);
+        // You can also store the entire user object if needed:
+        // localStorage.setItem("user", JSON.stringify(res.data.user));
+
         navigate("/");
       } else {
         toast.error(res.data.message || "Login failed");
@@ -41,12 +46,15 @@ export default function Login() {
         const res = await axios.get("/auth/is-authenticated", {
           withCredentials: true,
         });
-        if (res.data.success) navigate("/");
-        else if (res.data.message?.toLowerCase().includes("not verified")) {
+        if (res.data.success) {
+          navigate("/");
+        } else if (res.data.message?.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         }
       } catch (err) {
-        if (err.response?.data?.message?.toLowerCase().includes("not verified")) {
+        if (
+          err.response?.data?.message?.toLowerCase().includes("not verified")
+        ) {
           navigate("/verify-email");
         }
       }
@@ -57,11 +65,13 @@ export default function Login() {
   return (
     <div className="relative min-h-screen bg-gray-900 flex items-center justify-center overflow-hidden px-4">
       {/* 🔮 Background animations */}
-      <motion.div className="absolute w-96 h-96 bg-purple-500 opacity-30 rounded-full blur-3xl"
+      <motion.div
+        className="absolute w-96 h-96 bg-purple-500 opacity-30 rounded-full blur-3xl"
         animate={{ scale: [1, 1.2, 1], rotate: [0, 360] }}
         transition={{ repeat: Infinity, duration: 20, ease: "easeInOut" }}
       />
-      <motion.div className="absolute w-72 h-72 bg-blue-500 opacity-20 rounded-full blur-3xl top-0 right-0"
+      <motion.div
+        className="absolute w-72 h-72 bg-blue-500 opacity-20 rounded-full blur-3xl top-0 right-0"
         animate={{ scale: [1, 1.1, 1], rotate: [360, 0] }}
         transition={{ repeat: Infinity, duration: 25, ease: "easeInOut" }}
       />
@@ -127,7 +137,7 @@ export default function Login() {
 
         <p className="text-sm text-center mt-4 text-gray-400">
           Don’t have an account?{" "}
-          <Link to={'/register'} className="text-purple-400 hover:underline">
+          <Link to={"/register"} className="text-purple-400 hover:underline">
             Register
           </Link>
         </p>

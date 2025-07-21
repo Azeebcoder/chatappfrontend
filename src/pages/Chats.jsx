@@ -32,9 +32,7 @@ const Chats = () => {
 
   const handleUserSelect = (userId) => {
     setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
   };
 
@@ -60,32 +58,29 @@ const Chats = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-violet-200 via-pink-100 to-amber-100 px-4 py-6">
-      {/* Animated Background Bubble Layer */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="w-[200%] h-[200%] bg-[radial-gradient(circle_at_30%_30%,#fcd34d_0%,transparent_40%),radial-gradient(circle_at_70%_70%,#c084fc_0%,transparent_40%)]"
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-        />
+    <div className="relative min-h-screen p-6 overflow-hidden bg-gradient-to-br from-[#fdfbfb] via-[#f3f4f6] to-[#e5e7eb]">
+      {/* Static Abstract Background Blobs */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-16 left-12 w-72 h-72 bg-purple-300 rounded-full blur-2xl opacity-20" />
+        <div className="absolute bottom-16 right-12 w-96 h-96 bg-indigo-300 rounded-full blur-3xl opacity-20" />
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+      <div className="relative z-10 max-w-3xl mx-auto space-y-8">
         <motion.h2
-          className="text-3xl font-bold text-gray-800"
+          className="text-4xl font-extrabold text-gray-800"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          Chats
+          Your Chats
         </motion.h2>
 
         {chattedFriends.length === 0 ? (
-          <p className="text-gray-600">No chats yet.</p>
+          <p className="text-gray-600 text-lg">No recent chats yet.</p>
         ) : (
           <motion.ul
-            className="space-y-4"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-5"
             initial="hidden"
             animate="visible"
             variants={{
@@ -102,7 +97,7 @@ const Chats = () => {
               >
                 <Link
                   to={`/message/${user.chats}`}
-                  className="flex items-center gap-4 p-4 bg-white/80 backdrop-blur-md rounded-xl shadow hover:scale-[1.015] hover:shadow-xl transition-all duration-200"
+                  className="flex items-center gap-4 bg-white shadow-md hover:shadow-xl hover:scale-[1.01] transition rounded-xl p-4"
                 >
                   <img
                     src={
@@ -114,7 +109,7 @@ const Chats = () => {
                     className="w-12 h-12 rounded-full object-cover border"
                   />
                   <div>
-                    <p className="font-semibold text-gray-800">{user.name}</p>
+                    <p className="text-gray-800 font-semibold">{user.name}</p>
                     <p className="text-sm text-gray-500">@{user.username}</p>
                   </div>
                 </Link>
@@ -127,7 +122,7 @@ const Chats = () => {
       {/* Floating Button */}
       <motion.button
         onClick={() => setShowForm(true)}
-        className="fixed bottom-6 right-6 z-50 bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg transition-all flex items-center justify-center"
+        className="fixed bottom-6 right-6 z-50 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-xl transition-all"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         whileHover={{ scale: 1.1 }}
@@ -141,30 +136,27 @@ const Chats = () => {
       <AnimatePresence>
         {showForm && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
           >
-            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+            <div className="bg-white w-full max-w-md rounded-xl p-6 shadow-2xl">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Start a New Chat</h3>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
-                >
-                  ×
+                <h3 className="text-xl font-semibold text-gray-800">Start a Chat</h3>
+                <button onClick={() => setShowForm(false)} className="text-2xl text-gray-400 hover:text-gray-600">
+                  &times;
                 </button>
               </div>
 
-              <label className="flex items-center gap-2 mb-3">
+              <label className="flex items-center gap-2 mb-3 text-gray-700">
                 <input
                   type="checkbox"
                   checked={isGroupChat}
                   onChange={() => setIsGroupChat(!isGroupChat)}
                 />
-                <span className="text-gray-700">Group Chat</span>
+                Group Chat
               </label>
 
               {isGroupChat && (
@@ -173,18 +165,18 @@ const Chats = () => {
                   placeholder="Group Name"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded mb-4"
+                  className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
                 />
               )}
 
-              <div className="max-h-48 overflow-y-auto space-y-2">
+              <div className="max-h-56 overflow-y-auto space-y-2">
                 {users.map((user) => (
                   <button
                     key={user._id}
                     onClick={() => handleUserSelect(user._id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2 rounded border transition ${
+                    className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition border ${
                       selectedUsers.includes(user._id)
-                        ? "bg-green-100 border-green-400 text-green-700"
+                        ? "bg-indigo-100 border-indigo-400 text-indigo-700"
                         : "bg-gray-100 border-gray-300 text-gray-700"
                     }`}
                   >
@@ -204,7 +196,7 @@ const Chats = () => {
 
               <button
                 onClick={handleCreateChat}
-                className="mt-4 w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                className="mt-5 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
               >
                 Create Chat
               </button>

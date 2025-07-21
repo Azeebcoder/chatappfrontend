@@ -13,11 +13,15 @@ const ChatBox = ({ chatId }) => {
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [limit] = useState(20);
+  const [typing, setTyping] = useState(false);
+  const [isChatUserOnline, setIsChatUserOnline] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   const inputRef = useRef(null);
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
   const notificationAudio = useRef(null);
+  const typingTimeoutRef = useRef(null);
   const navigate = useNavigate();
   const { chatId: routeChatId } = useParams();
 
@@ -29,8 +33,8 @@ const ChatBox = ({ chatId }) => {
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     if (isNearBottom) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -41,7 +45,10 @@ const ChatBox = ({ chatId }) => {
       try {
         const res = await axios.get("/auth/is-authenticated", { withCredentials: true });
         const id = res.data.data?._id;
-        if (id) setUserId(id);
+        if (id) {
+          setUserId(id);
+          localStorage.setItem("userId", id);
+        }
         if (res.data.message?.toLowerCase().includes("not verified")) {
           navigate("/verify-email");
         }
@@ -89,6 +96,26 @@ const ChatBox = ({ chatId }) => {
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
   }, [chatId, userId]);
+
+  useEffect(() => {
+    socket.on("typing", (id) => {
+      if (chatUser?._id === id) setTyping(true);
+    });
+
+    socket.on("stopTyping", (id) => {
+      if (chatUser?._id === id) setTyping(false);
+    });
+
+    socket.on("activeUsers", (userIds) => {
+      setIsChatUserOnline(userIds.includes(chatUser?._id));
+    });
+
+    return () => {
+      socket.off("typing");
+      socket.off("stopTyping");
+      socket.off("activeUsers");
+    };
+  }, [chatUser]);
 
   const fetchMessages = async (loadMore = false) => {
     if (isLoadingMore) return;
@@ -189,9 +216,9 @@ const ChatBox = ({ chatId }) => {
   const getInitial = (name) => name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <div className="w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden">
+    <div className="relative w-full h-full flex flex-col bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white overflow-hidden rounded-xl">
       {chatUser && (
-        <div className="sticky top-0 z-50 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
+        <div className="sticky top-0 z-10 flex items-center gap-4 px-4 py-3 bg-white/10 backdrop-blur border-b border-white/10 shadow-md">
           {chatUser?.profilePic ? (
             <img
               src={chatUser.profilePic}
@@ -205,7 +232,14 @@ const ChatBox = ({ chatId }) => {
           )}
           <div>
             <h2 className="text-base font-semibold">{chatUser.name || "Unknown"}</h2>
-            <p className="text-xs text-gray-300">@{chatUser.username}</p>
+            <p className="text-xs text-gray-300 flex items-center gap-2">
+              @{chatUser.username}
+              {isChatUserOnline ? (
+                <span className="text-green-400">● Online</span>
+              ) : (
+                <span className="text-gray-400">● Offline</span>
+              )}
+            </p>
           </div>
         </div>
       )}
@@ -213,7 +247,7 @@ const ChatBox = ({ chatId }) => {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-28 sm:pb-20"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pt-[72px] pb-[100px]"
       >
         {hasMore && isLoadingMore && (
           <div className="text-center text-sm text-gray-400 mb-2">Loading older messages...</div>
@@ -276,16 +310,31 @@ const ChatBox = ({ chatId }) => {
           })}
         </AnimatePresence>
 
+        {typing && (
+          <div className="text-sm italic text-gray-400 px-4">Typing...</div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
-      <div className="sticky bottom-0 z-30 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
+      <div className="sticky bottom-0 z-10 bg-white/10 backdrop-blur px-4 py-3 border-t border-white/10">
         <div className="flex w-full gap-3">
           <input
             ref={inputRef}
             type="text"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value);
+              if (!isTyping) {
+                setIsTyping(true);
+                socket.emit("typing", chatId);
+              }
+              clearTimeout(typingTimeoutRef.current);
+              typingTimeoutRef.current = setTimeout(() => {
+                setIsTyping(false);
+                socket.emit("stopTyping", chatId);
+              }, 1500);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
