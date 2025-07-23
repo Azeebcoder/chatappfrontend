@@ -3,19 +3,22 @@ import { useParams } from "react-router-dom";
 import axios from "../utils/AxiosConfig.jsx";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
-import { FiUserPlus } from "react-icons/fi";
+import { FiUserPlus, FiCheck } from "react-icons/fi";
 
 const ViewProfile = () => {
   const { userId } = useParams();
   const [user, setUser] = useState(null);
   const [requested, setRequested] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await axios.get(`/chat/profile/${userId}`);
-        setUser(res.data.data);
-        setRequested(res.data.data.isRequested);
+        const { data } = res.data;
+        setUser(data);
+        setRequested(data.isRequested);
+        setIsFriend(data.isFriend);
       } catch (err) {
         toast.error("Failed to fetch user profile.");
       }
@@ -33,7 +36,39 @@ const ViewProfile = () => {
     }
   };
 
-  if (!user) return <p className="text-center text-gray-600 mt-10">Loading profile...</p>;
+  if (!user) {
+    return <p className="text-center text-gray-600 mt-10">Loading profile...</p>;
+  }
+
+  const renderButton = () => {
+    if (isFriend) {
+      return (
+        <motion.button
+          disabled
+          className="mt-6 inline-flex items-center justify-center px-5 py-2 rounded-full bg-green-600 text-white cursor-not-allowed shadow"
+        >
+          <FiCheck className="mr-2" />
+          Friends
+        </motion.button>
+      );
+    }
+
+    return (
+      <motion.button
+        onClick={sendFriendRequest}
+        disabled={requested}
+        whileTap={{ scale: 0.95 }}
+        className={`mt-6 inline-flex items-center justify-center px-5 py-2 rounded-full transition text-white shadow ${
+          requested
+            ? "bg-yellow-500 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
+      >
+        <FiUserPlus className="mr-2" />
+        {requested ? "Requested" : "Add Friend"}
+      </motion.button>
+    );
+  };
 
   return (
     <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-pink-100 via-purple-100 to-yellow-100">
@@ -52,19 +87,7 @@ const ViewProfile = () => {
         <p className="text-sm text-gray-500">@{user.username}</p>
         <p className="text-gray-600 mt-2">{user.bio || "No bio available."}</p>
 
-        <motion.button
-          onClick={sendFriendRequest}
-          disabled={requested}
-          whileTap={{ scale: 0.95 }}
-          className={`mt-6 inline-flex items-center justify-center px-5 py-2 rounded-full transition text-white shadow ${
-            requested
-              ? "bg-green-500 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          <FiUserPlus className="mr-2" />
-          {requested ? "Requested" : "Add Friend"}
-        </motion.button>
+        {renderButton()}
       </motion.div>
     </div>
   );
