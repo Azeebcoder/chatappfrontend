@@ -52,28 +52,6 @@ const ChatBox = ({ chatId }) => {
   }, [messages]);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await axios.get("/auth/is-authenticated", { withCredentials: true });
-        const id = res.data.data?._id;
-        if (id) {
-          setUserId(id);
-          localStorage.setItem("userId", id);
-        }
-        if (res.data.message?.toLowerCase().includes("not verified")) {
-          navigate("/verify-email");
-        }
-      } catch (err) {
-        const msg = err.response?.data?.message || "";
-        if (msg.toLowerCase().includes("not verified")) {
-          navigate("/verify-email");
-        }
-      }
-    };
-    checkAuth();
-  }, [navigate]);
-
-  useEffect(() => {
     const fetchChatUser = async () => {
       try {
         const { data } = await axios.get(`/message/user/${chatId}`);

@@ -1,10 +1,20 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 const MessageList = ({ messages, userId, chatUser, typing, onRetry }) => {
+  const bottomRef = useRef(null);
+
+  // Auto-scroll to the bottom when messages change
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, typing]);
+
   const getInitial = (name) => name?.[0]?.toUpperCase() || "U";
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 pt-4 pb-28 space-y-3 scrollbar-thin scrollbar-thumb-gray-600">
+    <div className="flex-1 overflow-y-auto px-4 pt-4 pb-12 space-y-3 scrollbar-thin scrollbar-thumb-gray-600">
       <AnimatePresence>
         {messages.map((msg) => {
           const isOwn = msg.sender._id === userId;
@@ -40,11 +50,17 @@ const MessageList = ({ messages, userId, chatUser, typing, onRetry }) => {
                 }`}
               >
                 {!isOwn && (
-                  <p className="text-xs text-gray-300 font-medium mb-1">{msg.sender.username}</p>
+                  <p className="text-xs text-gray-300 font-medium mb-1">
+                    {msg.sender.username}
+                  </p>
                 )}
-                <p className="text-sm break-words whitespace-pre-line">{msg.content}</p>
+                <p className="text-sm break-words whitespace-pre-line">
+                  {msg.content}
+                </p>
                 {isOwn && msg.status === "sending" && (
-                  <span className="absolute -bottom-4 right-2 text-xs text-gray-400">Sending...</span>
+                  <span className="absolute -bottom-4 right-2 text-xs text-gray-400">
+                    Sending...
+                  </span>
                 )}
                 {isOwn && msg.status === "failed" && (
                   <button
@@ -65,7 +81,12 @@ const MessageList = ({ messages, userId, chatUser, typing, onRetry }) => {
         })}
       </AnimatePresence>
 
-      {typing && <div className="text-sm italic text-gray-400 px-2 pt-2">Typing...</div>}
+      {typing && (
+        <div className="text-sm italic text-gray-400 px-2 pt-2">Typing...</div>
+      )}
+
+      {/* Bottom reference for auto-scroll */}
+      <div ref={bottomRef} />
     </div>
   );
 };
