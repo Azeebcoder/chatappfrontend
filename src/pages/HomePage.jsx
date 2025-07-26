@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { FaUserFriends, FaComments, FaSearch, FaUserEdit} from "react-icons/fa";
+import { FaUserFriends, FaComments, FaSearch, FaUserEdit } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import axios from "../utils/AxiosConfig.jsx";
 import { useNavigate } from "react-router-dom";
-import LogoutButton from "../components/LogoutButton.jsx"; // Import LogoutButton component
-import NavIcon from "../components/NavIcon.jsx"; // Import NavIcon component 
+import LogoutButton from "../components/LogoutButton.jsx";
+import NavIcon from "../components/NavIcon.jsx";
 
 export default function HomePage() {
   const [active, setActive] = useState();
@@ -27,7 +27,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-gray-900 to-black text-white">
+    <div className="min-h-[100dvh] flex bg-gradient-to-br from-gray-900 to-black text-white">
       {/* Sidebar for Large Screens */}
       <motion.aside
         initial={{ x: -100, opacity: 0 }}
@@ -69,7 +69,7 @@ export default function HomePage() {
           ))}
         </motion.div>
         <div className="mt-auto mb-4">
-          <LogoutButton handleLogout={handleLogout}/>
+          <LogoutButton handleLogout={handleLogout} />
         </div>
       </motion.aside>
 
@@ -83,11 +83,11 @@ export default function HomePage() {
           className="flex items-center justify-between px-5 py-4 bg-gray-800/90 backdrop-blur-md shadow-md lg:hidden"
         >
           <h1 className="text-2xl font-bold text-blue-400">SumyChat</h1>
-          <LogoutButton handleLogout={handleLogout}/>
+          <LogoutButton handleLogout={handleLogout} />
         </motion.header>
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 flex items-center justify-center">
+        <main className="flex-1 p-4 pb-20 flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={active}
@@ -98,7 +98,9 @@ export default function HomePage() {
               className="text-center"
             >
               <p className="text-gray-400 text-lg">Welcome back to</p>
-              <h2 className="text-3xl font-semibold text-blue-400 mt-2">SumyChat</h2>
+              <h2 className="text-3xl font-semibold text-blue-400 mt-2">
+                SumyChat
+              </h2>
             </motion.div>
           </AnimatePresence>
         </main>
@@ -108,7 +110,7 @@ export default function HomePage() {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="bg-gray-800/90 backdrop-blur-md shadow-inner flex justify-around items-center py-2 sm:py-3 lg:hidden"
+          className="fixed bottom-0 left-0 right-0 bg-gray-800/90 backdrop-blur-md shadow-inner flex justify-around items-center py-2 sm:py-3 lg:hidden z-50"
         >
           {navItems.map((item, i) => (
             <NavIcon
@@ -116,7 +118,7 @@ export default function HomePage() {
               icon={item.icon}
               label={item.label}
               active={active === item.label}
-              onClick={() =>  {
+              onClick={() => {
                 setActive(item.label);
                 navigate(`/${item.label.toLowerCase()}`);
               }}
@@ -127,4 +129,3 @@ export default function HomePage() {
     </div>
   );
 }
-
