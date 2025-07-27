@@ -12,6 +12,7 @@ const ViewProfile = () => {
   const [requested, setRequested] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [showImage, setShowImage] = useState(false);
+  const [chatId, setChatId] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -19,6 +20,7 @@ const ViewProfile = () => {
         const res = await axios.get(`/chat/profile/${userId}`);
         const { data } = res.data;
         setUser(data);
+        setChatId(data.chatId || "");
         setRequested(data.isRequested);
         setIsFriend(data.isFriend);
       } catch (err) {
@@ -38,6 +40,24 @@ const ViewProfile = () => {
     }
   };
 
+  const handleMessage = async () => {
+    try {
+      if (chatId) {
+        return navigate(`/message/${chatId}`);
+      }
+      // If no chat exists, create one
+      const res = await axios.post("/message/createchat", {
+        userIds: [userId],
+        isGroupChat: false,
+      });
+      const newChatId = res.data._id;
+      setChatId(newChatId);
+      navigate(`/message/${newChatId}`);
+    } catch (err) {
+      toast.error("Failed to start chat.");
+    }
+  };
+
   if (!user) {
     return <p className="text-center text-gray-600 mt-10">Loading profile...</p>;
   }
@@ -53,7 +73,7 @@ const ViewProfile = () => {
             <FiCheck /> Friends
           </motion.button>
           <motion.button
-            onClick={() => navigate(`/message/${userId}`)}
+            onClick={handleMessage}
             className="px-5 py-2 rounded-full bg-purple-600 text-white shadow-md hover:bg-purple-700 flex items-center gap-2"
             whileTap={{ scale: 0.95 }}
           >
@@ -76,7 +96,7 @@ const ViewProfile = () => {
           {requested ? "Requested" : "Add Friend"}
         </motion.button>
         <motion.button
-          onClick={() => navigate(`/message/${userId}`)}
+          onClick={handleMessage}
           className="px-5 py-2 rounded-full bg-purple-600 text-white shadow-md hover:bg-purple-700 flex items-center gap-2"
           whileTap={{ scale: 0.95 }}
         >
@@ -160,27 +180,6 @@ const ViewProfile = () => {
 
           {/* Action Buttons */}
           {renderButton()}
-
-          {/* Photo Grid */}
-          {/* <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-8 grid grid-cols-3 gap-2"
-          >
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="w-full aspect-square rounded-lg overflow-hidden bg-gray-700 hover:scale-105 transition-transform"
-              >
-                <img
-                  src={`https://source.unsplash.com/300x300/?nature,people,${idx}`}
-                  alt="user-post"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </motion.div> */}
         </div>
       </div>
 

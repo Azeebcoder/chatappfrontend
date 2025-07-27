@@ -6,13 +6,13 @@ import Register from "./pages/Register.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import Login from "./pages/Login.jsx";
 import SearchUser from "./pages/SearchUser.jsx";
-import FriendRequests from "./pages/FriendRequests.jsx";
 import Chats from "./pages/Chats.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import UpdateProfile from "./pages/UpdateProfile.jsx";
 import ViewProfile from "./pages/ViewProfile.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import Protected from "./Protected/Protected.jsx";
+import Friends from "./pages/Friends.jsx";
 
 const App = () => {
   return (
@@ -45,7 +45,7 @@ const App = () => {
           path="/friends"
           element={
             <Protected>
-              <FriendRequests />
+              <Friends />
             </Protected>
           }
         />
