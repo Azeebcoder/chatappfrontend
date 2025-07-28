@@ -29,6 +29,7 @@ const Chats = () => {
 
     fetchAll();
   }, []);
+  
 
   const handleUserSelect = (userId) => {
     setSelectedUsers((prev) =>
@@ -96,7 +97,7 @@ const Chats = () => {
                 }}
               >
                 <Link
-                  to={`/message/${user.chats}`}
+                  to={`/message/${user.chatId}`}
                   className="flex items-center gap-4 bg-white shadow-md hover:shadow-xl hover:scale-[1.01] transition rounded-xl p-4"
                 >
                   <img
