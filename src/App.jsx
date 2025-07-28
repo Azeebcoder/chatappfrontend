@@ -24,7 +24,7 @@ const App = () => {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Routes (No HomeLayout) */}
+        {/* Protected Routes */}
         <Route
           path="/"
           element={
