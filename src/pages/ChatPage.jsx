@@ -146,22 +146,33 @@ const ChatPage = () => {
   }, [chatId, userId]);
 
   /** Typing and Online Users */
-  useEffect(() => {
-    socket.on("typing", (id) => {
-      if (chatUser?._id === id) setTyping(true);
-    });
-    socket.on("stopTyping", (id) => {
-      if (chatUser?._id === id) setTyping(false);
-    });
-    socket.on("activeUsers", (userIds) => {
-      setIsChatUserOnline(userIds.includes(chatUser?._id));
-    });
-    return () => {
-      socket.off("typing");
-      socket.off("stopTyping");
-      socket.off("activeUsers");
-    };
-  }, [chatUser]);
+  /** Typing & Online Status */
+useEffect(() => {
+  if (!chatUser?._id) return;
+
+  const handleTyping = (id) => {
+    if (id === chatUser._id) setTyping(true);
+  };
+
+  const handleStopTyping = (id) => {
+    if (id === chatUser._id) setTyping(false);
+  };
+
+  const handleActiveUsers = (userIds) => {
+    setIsChatUserOnline(userIds.includes(chatUser._id));
+  };
+
+  socket.on("typing", handleTyping);
+  socket.on("stopTyping", handleStopTyping);
+  socket.on("activeUsers", handleActiveUsers);
+
+  return () => {
+    socket.off("typing", handleTyping);
+    socket.off("stopTyping", handleStopTyping);
+    socket.off("activeUsers", handleActiveUsers);
+  };
+}, [chatUser?._id]);
+
 
   /** Send Message */
   const sendMessage = async (e, retryId = null) => {
