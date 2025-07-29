@@ -220,7 +220,7 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-gray-900 to-black text-white">
-      <ChatHeader chatId={chatId} chatUser={chatUser} isChatUserOnline={isChatUserOnline} />
+      <ChatHeader chatId={chatId} chatUser={chatUser} isChatUserOnline={isChatUserOnline} setChatUser={setChatUser}/>
       
       <div
         ref={containerRef}

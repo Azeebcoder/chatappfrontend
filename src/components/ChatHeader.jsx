@@ -5,9 +5,8 @@ import { FaCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 
-const ChatHeader = ({ chatId, isChatUserOnline }) => {
+const ChatHeader = ({ chatId,chatUser,setChatUser, isChatUserOnline }) => {
   const getInitial = (name) => name?.[0]?.toUpperCase() || "U";
-  const [chatUser, setChatUser] = useState();
 
   const navigate = useNavigate();
 
