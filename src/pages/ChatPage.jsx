@@ -38,7 +38,8 @@ const ChatPage = () => {
     const container = containerRef.current;
     if (!container) return;
     isAtBottomRef.current =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      50;
 
     if (hasMore && container.scrollTop < 50 && !isLoadingMore) {
       fetchMessages(true);
@@ -76,7 +77,11 @@ const ChatPage = () => {
     if (isLoadingMore) return;
     try {
       setIsLoadingMore(true);
-      const res = await axios.get(`/message/getmessage/${chatId}?limit=${limit}&skip=${loadMore ? skip : 0}`);
+      const res = await axios.get(
+        `/message/getmessage/${chatId}?limit=${limit}&skip=${
+          loadMore ? skip : 0
+        }`
+      );
       const newMessages = res.data;
 
       if (loadMore) {
@@ -146,33 +151,34 @@ const ChatPage = () => {
   }, [chatId, userId]);
 
   /** Typing and Online Users */
-  /** Typing & Online Status */
-useEffect(() => {
-  if (!chatUser?._id) return;
+  useEffect(() => {
+    if (!chatUser?._id) return;
 
-  const handleTyping = (id) => {
-    if (id === chatUser._id) setTyping(true);
-  };
+    const handleTyping = (id) => {
+      if (id === chatUser._id) setTyping(true);
+    };
 
-  const handleStopTyping = (id) => {
-    if (id === chatUser._id) setTyping(false);
-  };
+    const handleStopTyping = (id) => {
+      if (id === chatUser._id) setTyping(false);
+    };
 
-  const handleActiveUsers = (userIds) => {
-    setIsChatUserOnline(userIds.includes(chatUser._id));
-  };
+    const handleActiveUsers = (userIds) => {
+      setIsChatUserOnline(userIds.includes(chatUser._id));
+    };
 
-  socket.on("typing", handleTyping);
-  socket.on("stopTyping", handleStopTyping);
-  socket.on("activeUsers", handleActiveUsers);
+    socket.on("typing", handleTyping);
+    socket.on("stopTyping", handleStopTyping);
+    socket.on("activeUsers", handleActiveUsers);
 
-  return () => {
-    socket.off("typing", handleTyping);
-    socket.off("stopTyping", handleStopTyping);
-    socket.off("activeUsers", handleActiveUsers);
-  };
-}, [chatUser?._id]);
+    // Sync request in case missed real-time events
+    socket.emit("getActiveUsers");
 
+    return () => {
+      socket.off("typing", handleTyping);
+      socket.off("stopTyping", handleStopTyping);
+      socket.off("activeUsers", handleActiveUsers);
+    };
+  }, [chatUser?._id]);
 
   /** Send Message */
   const sendMessage = async (e, retryId = null) => {
@@ -198,16 +204,15 @@ useEffect(() => {
       setMessages((prev) => [...prev, tempMsg]);
       setContent("");
     } else {
-      setMessages((prev) =>
-        prev.map((m) => (m._id === retryId ? tempMsg : m))
-      );
+      setMessages((prev) => prev.map((m) => (m._id === retryId ? tempMsg : m)));
     }
 
     try {
-      const { data } = await axios.post(
-        `/message/sendmessage/${chatId}`,
-        { content: msgContent, messageType: "text", attachments: [] }
-      );
+      const { data } = await axios.post(`/message/sendmessage/${chatId}`, {
+        content: msgContent,
+        messageType: "text",
+        attachments: [],
+      });
       setMessages((prev) => {
         const filtered = prev.filter((m) => m._id !== tempId);
         return filtered.some((m) => m._id === data._id)
@@ -222,24 +227,29 @@ useEffect(() => {
       }, 100);
     } catch {
       setMessages((prev) =>
-        prev.map((m) =>
-          m._id === tempId ? { ...m, status: "failed" } : m
-        )
+        prev.map((m) => (m._id === tempId ? { ...m, status: "failed" } : m))
       );
     }
   };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-gray-900 to-black text-white">
-      <ChatHeader chatId={chatId} chatUser={chatUser} isChatUserOnline={isChatUserOnline} setChatUser={setChatUser}/>
-      
+      <ChatHeader
+        chatId={chatId}
+        chatUser={chatUser}
+        isChatUserOnline={isChatUserOnline}
+        setChatUser={setChatUser}
+      />
+
       <div
         ref={containerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-4 pt-4 pb-28 space-y-3 scrollbar-thin scrollbar-thumb-gray-600"
       >
         {hasMore && isLoadingMore && (
-          <div className="text-center text-sm text-gray-500">Loading older messages...</div>
+          <div className="text-center text-sm text-gray-500">
+            Loading older messages...
+          </div>
         )}
         <MessageList
           messages={messages}
