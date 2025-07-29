@@ -18,6 +18,7 @@ const ChatPage = () => {
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isChatUserOnline, setIsChatUserOnline] = useState(false);
   const [limit] = useState(20);
 
   const containerRef = useRef(null);
@@ -157,12 +158,18 @@ useEffect(() => {
     if (id === chatUser._id) setTyping(false);
   };
 
+  const handleActiveUsers = (userIds) => {
+    setIsChatUserOnline(userIds.includes(chatUser._id));
+  };
+
   socket.on("typing", handleTyping);
   socket.on("stopTyping", handleStopTyping);
+  socket.on("activeUsers", handleActiveUsers);
 
   return () => {
     socket.off("typing", handleTyping);
     socket.off("stopTyping", handleStopTyping);
+    socket.off("activeUsers", handleActiveUsers);
   };
 }, [chatUser?._id]);
 
@@ -224,7 +231,7 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-gray-900 to-black text-white">
-      <ChatHeader chatId={chatId} chatUser={chatUser} setChatUser={setChatUser}/>
+      <ChatHeader chatId={chatId} chatUser={chatUser} isChatUserOnline={isChatUserOnline} setChatUser={setChatUser}/>
       
       <div
         ref={containerRef}

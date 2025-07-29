@@ -3,13 +3,12 @@ import { useEffect, useState } from "react";
 import axios from "../utils/AxiosConfig.jsx";
 import { FaCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import socket from "../utils/socket"; // make sure this is your shared socket instance
 
-const ChatHeader = ({ chatId, chatUser, setChatUser }) => {
-  const [isChatUserOnline, setIsChatUserOnline] = useState(false);
-  const navigate = useNavigate();
 
+const ChatHeader = ({ chatId,chatUser,setChatUser, isChatUserOnline }) => {
   const getInitial = (name) => name?.[0]?.toUpperCase() || "U";
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchChatUser = async () => {
@@ -23,29 +22,10 @@ const ChatHeader = ({ chatId, chatUser, setChatUser }) => {
     if (chatId) fetchChatUser();
   }, [chatId]);
 
-  useEffect(() => {
-    if (!chatUser?._id) return;
-
-    const handleActiveUsers = (userIds) => {
-      setIsChatUserOnline(userIds.includes(chatUser._id));
-    };
-
-    socket.on("activeUsers", handleActiveUsers);
-
-    // Check immediately if already received before mounting
-    if (socket.activeUsersCache && chatUser._id) {
-      setIsChatUserOnline(socket.activeUsersCache.includes(chatUser._id));
-    }
-
-    return () => {
-      socket.off("activeUsers", handleActiveUsers);
-    };
-  }, [chatUser?._id]);
-
   const formatLastSeen = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diff = Math.floor((now - date) / 60000); // in minutes
+    const diff = Math.floor((now - date) / 60000);
     if (diff < 1) return "just now";
     if (diff < 60) return `${diff} min ago`;
     if (diff < 1440) return `${Math.floor(diff / 60)} hr ago`;
@@ -68,23 +48,20 @@ const ChatHeader = ({ chatId, chatUser, setChatUser }) => {
           <img
             src={chatUser.profilePic}
             alt="profile"
-            className="w-11 h-11 rounded-full border border-white/20 object-cover shadow-md cursor-pointer"
-            onClick={() => navigate(`/view-profile/${chatUser._id}`)}
+            className="w-11 h-11 rounded-full border border-white/20 object-cover shadow-md"
+            onClick={() => {navigate(`/view-profile/${chatUser._id}`)}}
           />
         ) : (
-          <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-lg font-bold border border-white/20 shadow-md cursor-pointer">
+          <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-lg font-bold border border-white/20 shadow-md">
             {getInitial(chatUser?.username)}
           </div>
         )}
-
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2 }}
           className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-gray-900 ${
-            isChatUserOnline
-              ? "bg-green-400 shadow-green-400 shadow"
-              : "bg-gray-500"
+            isChatUserOnline ? "bg-green-400 shadow-green-400 shadow" : "bg-gray-500"
           }`}
         />
       </motion.div>
