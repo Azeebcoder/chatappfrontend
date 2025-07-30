@@ -20,74 +20,43 @@ const ChatPage = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isChatUserOnline, setIsChatUserOnline] = useState(false);
   const [limit] = useState(20);
+  const [editingMessage, setEditingMessage] = useState(null);
 
   const containerRef = useRef(null);
   const bottomRef = useRef(null);
   const notificationAudio = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const isAtBottomRef = useRef(true); // Track if user is near bottom
+  const isAtBottomRef = useRef(true);
 
-  /** Load notification sound */
   useEffect(() => {
     notificationAudio.current = new Audio("/notification.mp3");
     notificationAudio.current.load();
   }, []);
 
-  /** Detect scroll position */
   const handleScroll = () => {
     const container = containerRef.current;
     if (!container) return;
     isAtBottomRef.current =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      50;
+      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
 
     if (hasMore && container.scrollTop < 50 && !isLoadingMore) {
       fetchMessages(true);
     }
   };
 
-  /** Fetch Chat User Info */
-  useEffect(() => {
-    const fetchChatUser = async () => {
-      try {
-        const { data } = await axios.get(`/message/user/${chatId}`);
-        setChatUser(data);
-      } catch (err) {
-        console.error("Error fetching chat user:", err);
-      }
-    };
-    if (chatId) fetchChatUser();
-  }, [chatId]);
-
-  /** Fetch Current User ID */
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const { data } = await axios.get("/chat/me");
-        setUserId(data.data._id);
-      } catch (err) {
-        console.error("Failed to fetch current user:", err);
-      }
-    };
-    fetchCurrentUser();
-  }, []);
-
-  /** Fetch Messages with Scroll Preservation */
   const fetchMessages = async (loadMore = false) => {
     if (isLoadingMore) return;
+
     try {
       setIsLoadingMore(true);
       const res = await axios.get(
-        `/message/getmessage/${chatId}?limit=${limit}&skip=${
-          loadMore ? skip : 0
-        }`
+        `/message/getmessage/${chatId}?limit=${limit}&skip=${loadMore ? skip : 0}`
       );
       const newMessages = res.data;
 
       if (loadMore) {
         const container = containerRef.current;
         const prevScrollHeight = container.scrollHeight;
-
         setMessages((prev) => [...newMessages, ...prev]);
         setSkip((prev) => prev + newMessages.length);
 
@@ -111,7 +80,6 @@ const ChatPage = () => {
     }
   };
 
-  /** Load Messages when chat changes */
   useEffect(() => {
     if (chatId) {
       setSkip(0);
@@ -120,14 +88,36 @@ const ChatPage = () => {
     }
   }, [chatId]);
 
-  /** Socket Join and Events */
   useEffect(() => {
-    if (chatId) socket.emit("joinChat", chatId);
-    return () => socket.emit("leaveChat", chatId);
+    const fetchChatUser = async () => {
+      try {
+        const { data } = await axios.get(`/message/user/${chatId}`);
+        setChatUser(data);
+      } catch (err) {
+        console.error("Error fetching chat user:", err);
+      }
+    };
+    if (chatId) fetchChatUser();
   }, [chatId]);
 
-  /** Handle new incoming messages */
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const { data } = await axios.get("/chat/me");
+        setUserId(data.data._id);
+      } catch (err) {
+        console.error("Failed to fetch current user:", err);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    if (!chatId) return;
+
+    socket.emit("joinChat", chatId);
+    socket.emit("getActiveUsers");
+
     const handleNewMessage = (message) => {
       if (message.chat === chatId) {
         setMessages((prev) => {
@@ -146,45 +136,68 @@ const ChatPage = () => {
         }
       }
     };
-    socket.on("newMessage", handleNewMessage);
-    return () => socket.off("newMessage", handleNewMessage);
-  }, [chatId, userId]);
 
-  /** Typing and Online Users */
-  useEffect(() => {
-    if (!chatUser?._id) return;
+    const handleEditMessage = (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg._id === updatedMessage._id ? updatedMessage : msg))
+      );
+    };
+
+    const handleDeleteMessage = (deletedId) => {
+      setMessages((prev) => prev.filter((m) => m._id !== deletedId));
+    };
 
     const handleTyping = (id) => {
-      if (id === chatUser._id) setTyping(true);
+      if (id === chatUser?._id) setTyping(true);
     };
 
     const handleStopTyping = (id) => {
-      if (id === chatUser._id) setTyping(false);
+      if (id === chatUser?._id) setTyping(false);
     };
 
     const handleActiveUsers = (userIds) => {
-      setIsChatUserOnline(userIds.includes(chatUser._id));
+      setIsChatUserOnline(userIds.includes(chatUser?._id));
     };
 
+    socket.on("newMessage", handleNewMessage);
+    socket.on("editMessage", handleEditMessage);
+    socket.on("deleteMessage", handleDeleteMessage);
     socket.on("typing", handleTyping);
     socket.on("stopTyping", handleStopTyping);
     socket.on("activeUsers", handleActiveUsers);
 
-    // Sync request in case missed real-time events
-    socket.emit("getActiveUsers");
-
     return () => {
+      socket.emit("leaveChat", chatId);
+      socket.off("newMessage", handleNewMessage);
+      socket.off("editMessage", handleEditMessage);
+      socket.off("deleteMessage", handleDeleteMessage);
       socket.off("typing", handleTyping);
       socket.off("stopTyping", handleStopTyping);
       socket.off("activeUsers", handleActiveUsers);
     };
-  }, [chatUser?._id]);
+  }, [chatId, chatUser?._id, userId]);
 
-  /** Send Message */
   const sendMessage = async (e, retryId = null) => {
     e?.preventDefault();
     const trimmed = content.trim();
     if (!trimmed && !retryId) return;
+
+    if (editingMessage) {
+      try {
+        const { data } = await axios.put(`/message/edit/${editingMessage._id}`, {
+          content: trimmed,
+        });
+        socket.emit("editMessage", data);
+        setMessages((prev) =>
+          prev.map((msg) => (msg._id === data._id ? data : msg))
+        );
+        setEditingMessage(null);
+        setContent("");
+      } catch (err) {
+        console.error("Failed to edit message:", err);
+      }
+      return;
+    }
 
     const tempId = retryId || `temp-${Date.now()}`;
     const msgContent = retryId
@@ -204,7 +217,9 @@ const ChatPage = () => {
       setMessages((prev) => [...prev, tempMsg]);
       setContent("");
     } else {
-      setMessages((prev) => prev.map((m) => (m._id === retryId ? tempMsg : m)));
+      setMessages((prev) =>
+        prev.map((m) => (m._id === retryId ? tempMsg : m))
+      );
     }
 
     try {
@@ -215,13 +230,9 @@ const ChatPage = () => {
       });
       setMessages((prev) => {
         const filtered = prev.filter((m) => m._id !== tempId);
-        return filtered.some((m) => m._id === data._id)
-          ? filtered
-          : [...filtered, data];
+        return filtered.some((m) => m._id === data._id) ? filtered : [...filtered, data];
       });
       socket.emit("newMessage", chatId);
-
-      // Auto scroll to bottom
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
@@ -231,6 +242,28 @@ const ChatPage = () => {
       );
     }
   };
+
+  const handleDelete = async (messageId) => {
+    try {
+      await axios.delete(`/message/delete/${messageId}`);
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      // ❌ Don't scroll here to avoid jump
+    } catch (err) {
+      console.error("Failed to delete message", err);
+    }
+  };
+
+  const handleEdit = (msg) => {
+    setEditingMessage(msg);
+    setContent(msg.content);
+  };
+
+  // ✅ Optional scroll on typing if user is already at bottom
+  useEffect(() => {
+    if (typing && isAtBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [typing]);
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-gray-900 to-black text-white">
@@ -257,8 +290,10 @@ const ChatPage = () => {
           chatUser={chatUser}
           typing={typing}
           onRetry={sendMessage}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          bottomRef={bottomRef}
         />
-        <div ref={bottomRef} />
       </div>
 
       <MessageInput
@@ -270,6 +305,7 @@ const ChatPage = () => {
         isTyping={isTyping}
         setIsTyping={setIsTyping}
         typingTimeoutRef={typingTimeoutRef}
+        editingMessage={editingMessage}
       />
     </div>
   );
