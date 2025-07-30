@@ -43,6 +43,10 @@ const ChatPage = () => {
       fetchMessages(true);
     }
   };
+  const onCancelEdit = () => {
+    setEditingMessage(null);
+    setContent("");
+  };
 
   const fetchMessages = async (loadMore = false) => {
     if (isLoadingMore) return;
@@ -293,6 +297,8 @@ const ChatPage = () => {
           onDelete={handleDelete}
           onEdit={handleEdit}
           bottomRef={bottomRef}
+          editingMessageId={editingMessage?._id}
+          onCancelEdit={onCancelEdit}
         />
       </div>
 
@@ -306,6 +312,8 @@ const ChatPage = () => {
         setIsTyping={setIsTyping}
         typingTimeoutRef={typingTimeoutRef}
         editingMessage={editingMessage}
+        onCancelEdit={onCancelEdit}
+        setEditingMessage={setEditingMessage}
       />
     </div>
   );
