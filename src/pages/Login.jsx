@@ -1,40 +1,44 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import axios from "../utils/AxiosConfig.jsx";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [formData, setFormData] = useState({ username: "", password: "" });
+  const [error, setError] = useState(""); // single error string
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+
     try {
       const res = await axios.post("/auth/login", formData);
-      if (res.data.success) {
-        toast.success(res.data.message);
 
-        // ✅ Save userId and optionally user details to localStorage
+      if (res.data.success) {
         localStorage.setItem("userId", res.data.user._id);
         localStorage.setItem("username", res.data.user.username);
-        // You can also store the entire user object if needed:
-        // localStorage.setItem("user", JSON.stringify(res.data.user));
-
         navigate("/");
-      } else {
-        toast.error(res.data.message || "Login failed");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      const message = err.response?.data?.message?.toLowerCase() || "";
+
+      if (message.includes("username")) {
+        setError("Username not found");
+      } else if (message.includes("password")) {
+        setError("Incorrect password");
+      } else {
+        setError("Login failed. Try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -83,8 +87,12 @@ export default function Login() {
         className="z-10 w-full max-w-md bg-gray-800/90 backdrop-blur-xl rounded-2xl p-8 shadow-2xl text-white"
       >
         <h2 className="text-3xl font-bold text-center mb-6">Login</h2>
+        {error && (
+            <p className="text-red-500 text-center text-sm my-2">{error}</p>
+          )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Username Field */}
           <div>
             <label className="text-sm mb-1 block">Username</label>
             <input
@@ -98,7 +106,7 @@ export default function Login() {
             />
           </div>
 
-          {/* 👁️‍🗨️ Password field with centered icon */}
+          {/* Password Field */}
           <div>
             <label className="text-sm mb-1 block">Password</label>
             <div className="relative">
@@ -124,6 +132,7 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Submit Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -133,6 +142,9 @@ export default function Login() {
           >
             {loading ? "Logging in..." : "Login"}
           </motion.button>
+
+          {/* Error Message (Bottom Center) */}
+          
         </form>
 
         <p className="text-sm text-center mt-4 text-gray-400">

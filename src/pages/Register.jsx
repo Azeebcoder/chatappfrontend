@@ -12,6 +12,8 @@ export default function Register() {
     email: "",
     password: "",
   });
+
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -20,6 +22,7 @@ export default function Register() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
   };
 
   const handleImageChange = (e) => {
@@ -34,15 +37,26 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const newErrors = {};
+    if (!formData.name) newErrors.name = "Full name is required";
+    if (!formData.username) newErrors.username = "Username is required";
+    if (!formData.email) newErrors.email = "Email is required";
+    if (!formData.password) newErrors.password = "Password is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setLoading(true);
+
     try {
       const formDataToSend = new FormData();
       Object.entries(formData).forEach(([key, value]) =>
         formDataToSend.append(key, value)
       );
-      if (profilePic) {
-        formDataToSend.append("profilePic", profilePic);
-      }
+      if (profilePic) formDataToSend.append("profilePic", profilePic);
 
       const res = await axios.post("/auth/register", formDataToSend, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -50,13 +64,21 @@ export default function Register() {
       });
 
       if (res.data.success) {
-        toast.success(res.data.message || "Registered successfully");
+        toast.success("Registered successfully");
         navigate("/verify-email");
       } else {
         toast.error(res.data.message || "Failed to register");
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed");
+      const msg = err.response?.data?.message;
+
+      if (msg?.toLowerCase().includes("user already exists")) {
+        setErrors({ username: "Username already exists" });
+      } else if (msg?.toLowerCase().includes("invalid email")) {
+        setErrors({ email: "Invalid email format" });
+      } else {
+        toast.error(msg || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -64,7 +86,7 @@ export default function Register() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-900 text-white px-4 overflow-hidden font-sans">
-      {/* 🔵 Background blobs */}
+      {/* Background Blobs */}
       <motion.div
         className="absolute w-72 h-72 bg-purple-700 rounded-full opacity-20 blur-3xl"
         animate={{ x: [0, 200, 0], y: [0, -150, 0] }}
@@ -76,7 +98,7 @@ export default function Register() {
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* 🔒 Card */}
+      {/* Card */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -87,9 +109,9 @@ export default function Register() {
           Create an Account
         </h2>
 
-        {/* 👤 Profile image preview + upload */}
+        {/* Profile Picture */}
         <div className="flex justify-center mb-6">
-          <div className="relative w-24 h-24">
+          <label htmlFor="profilePic" className="relative w-24 h-24">
             <img
               src={
                 preview ||
@@ -98,12 +120,9 @@ export default function Register() {
               alt="Preview"
               className="w-full h-full object-cover rounded-full border-2 border-purple-500"
             />
-            <label
-              htmlFor="profilePic"
-              className="absolute bottom-0 right-0 p-2 bg-white rounded-full cursor-pointer hover:bg-purple-200 transition"
-            >
+            <div className="absolute bottom-0 right-0 p-2 bg-white rounded-full cursor-pointer hover:bg-purple-200 transition">
               <Camera size={18} className="text-purple-700" />
-            </label>
+            </div>
             <input
               id="profilePic"
               type="file"
@@ -111,57 +130,96 @@ export default function Register() {
               onChange={handleImageChange}
               className="hidden"
             />
-          </div>
+          </label>
         </div>
 
-        {/* 📝 Form */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            className="w-full bg-gray-700 border border-gray-600 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            className="w-full bg-gray-700 border border-gray-600 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            className="w-full bg-gray-700 border border-gray-600 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-
-          <div className="relative">
+          {/* Name */}
+          <div>
             <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Password"
-              className="w-full bg-gray-700 border border-gray-600 px-4 py-3 pr-12 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={formData.password}
+              type="text"
+              name="name"
+              placeholder="Full Name"
+              className={`w-full bg-gray-700 border px-4 py-3 rounded-md focus:outline-none focus:ring-2 ${
+                errors.name
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-600 focus:ring-purple-500"
+              }`}
+              value={formData.name}
               onChange={handleChange}
-              required
             />
-            <span
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-3 flex items-center cursor-pointer text-gray-400"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </span>
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
           </div>
 
+          {/* Username */}
+          <div>
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              className={`w-full bg-gray-700 border px-4 py-3 rounded-md focus:outline-none focus:ring-2 ${
+                errors.username
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-600 focus:ring-purple-500"
+              }`}
+              value={formData.username}
+              onChange={handleChange}
+            />
+            {errors.username && (
+              <p className="text-red-500 text-sm mt-1">{errors.username}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              className={`w-full bg-gray-700 border px-4 py-3 rounded-md focus:outline-none focus:ring-2 ${
+                errors.email
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-600 focus:ring-purple-500"
+              }`}
+              value={formData.email}
+              onChange={handleChange}
+            />
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
+                className={`w-full bg-gray-700 border px-4 py-3 pr-12 rounded-md focus:outline-none focus:ring-2 ${
+                  errors.password
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-600 focus:ring-purple-500"
+                }`}
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 flex items-center cursor-pointer text-gray-400"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </span>
+            </div>
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+            )}
+          </div>
+
+          {/* Submit */}
           <motion.button
             whileTap={{ scale: 0.97 }}
             whileHover={{ scale: 1.02 }}
