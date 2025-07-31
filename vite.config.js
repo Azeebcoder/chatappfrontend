@@ -17,9 +17,9 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "Your App Name",
-        short_name: "App",
-        description: "Your App Description",
+        name: "SumyChat",
+        short_name: "SumyChat",
+        description: "The Best private chat app for couples and more",
         theme_color: "#0f172a",
         background_color: "#0f172a",
         display: "standalone",
