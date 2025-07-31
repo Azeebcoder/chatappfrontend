@@ -37,7 +37,8 @@ const ChatPage = () => {
     const container = containerRef.current;
     if (!container) return;
     isAtBottomRef.current =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      50;
 
     if (hasMore && container.scrollTop < 50 && !isLoadingMore) {
       fetchMessages(true);
@@ -54,7 +55,9 @@ const ChatPage = () => {
     try {
       setIsLoadingMore(true);
       const res = await axios.get(
-        `/message/getmessage/${chatId}?limit=${limit}&skip=${loadMore ? skip : 0}`
+        `/message/getmessage/${chatId}?limit=${limit}&skip=${
+          loadMore ? skip : 0
+        }`
       );
       const newMessages = res.data;
 
@@ -143,7 +146,9 @@ const ChatPage = () => {
 
     const handleEditMessage = (updatedMessage) => {
       setMessages((prev) =>
-        prev.map((msg) => (msg._id === updatedMessage._id ? updatedMessage : msg))
+        prev.map((msg) =>
+          msg._id === updatedMessage._id ? updatedMessage : msg
+        )
       );
     };
 
@@ -188,9 +193,12 @@ const ChatPage = () => {
 
     if (editingMessage) {
       try {
-        const { data } = await axios.put(`/message/edit/${editingMessage._id}`, {
-          content: trimmed,
-        });
+        const { data } = await axios.put(
+          `/message/edit/${editingMessage._id}`,
+          {
+            content: trimmed,
+          }
+        );
         socket.emit("editMessage", data);
         setMessages((prev) =>
           prev.map((msg) => (msg._id === data._id ? data : msg))
@@ -221,9 +229,7 @@ const ChatPage = () => {
       setMessages((prev) => [...prev, tempMsg]);
       setContent("");
     } else {
-      setMessages((prev) =>
-        prev.map((m) => (m._id === retryId ? tempMsg : m))
-      );
+      setMessages((prev) => prev.map((m) => (m._id === retryId ? tempMsg : m)));
     }
 
     try {
@@ -234,7 +240,9 @@ const ChatPage = () => {
       });
       setMessages((prev) => {
         const filtered = prev.filter((m) => m._id !== tempId);
-        return filtered.some((m) => m._id === data._id) ? filtered : [...filtered, data];
+        return filtered.some((m) => m._id === data._id)
+          ? filtered
+          : [...filtered, data];
       });
       socket.emit("newMessage", chatId);
       setTimeout(() => {
@@ -272,18 +280,18 @@ const ChatPage = () => {
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-gray-900 to-black text-white">
       <div className="fixed top-0 left-0 right-0 z-10 bg-gradient-to-br from-gray-900 to-black">
-      <ChatHeader
-        chatId={chatId}
-        chatUser={chatUser}
-        isChatUserOnline={isChatUserOnline}
-        setChatUser={setChatUser}
-      />
-    </div>
+        <ChatHeader
+          chatId={chatId}
+          chatUser={chatUser}
+          isChatUserOnline={isChatUserOnline}
+          setChatUser={setChatUser}
+        />
+      </div>
 
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 pt-4 pb-28 space-y-3 scrollbar-thin scrollbar-thumb-gray-600"
+        className="pt-[64px] pb-28 px-4 overflow-y-auto h-[100dvh] space-y-3 scrollbar-thin scrollbar-thumb-gray-600"
       >
         {hasMore && isLoadingMore && (
           <div className="text-center text-sm text-gray-500">

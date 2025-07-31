@@ -1,14 +1,13 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import axios from "../utils/AxiosConfig.jsx";
 import { FaCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-
-const ChatHeader = ({ chatId,chatUser,setChatUser, isChatUserOnline }) => {
-  const getInitial = (name) => name?.[0]?.toUpperCase() || "U";
-
+const ChatHeader = ({ chatId, chatUser, setChatUser, isChatUserOnline }) => {
   const navigate = useNavigate();
+
+  const getInitial = (name) => name?.[0]?.toUpperCase() || "U";
 
   useEffect(() => {
     const fetchChatUser = async () => {
@@ -37,7 +36,7 @@ const ChatHeader = ({ chatId,chatUser,setChatUser, isChatUserOnline }) => {
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="sticky top-0 flex items-center gap-4 px-4 py-3 bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-lg border-b border-white/10 z-50 shadow-lg"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center gap-4 px-4 py-3 bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-lg border-b border-white/10 shadow-lg"
     >
       <motion.div
         whileHover={{ scale: 1.05 }}
@@ -48,14 +47,15 @@ const ChatHeader = ({ chatId,chatUser,setChatUser, isChatUserOnline }) => {
           <img
             src={chatUser.profilePic}
             alt="profile"
-            className="w-11 h-11 rounded-full border border-white/20 object-cover shadow-md"
-            onClick={() => {navigate(`/view-profile/${chatUser._id}`)}}
+            className="w-11 h-11 rounded-full border border-white/20 object-cover shadow-md cursor-pointer"
+            onClick={() => navigate(`/view-profile/${chatUser._id}`)}
           />
         ) : (
-          <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-lg font-bold border border-white/20 shadow-md">
+          <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-lg font-bold border border-white/20 shadow-md cursor-pointer">
             {getInitial(chatUser?.username)}
           </div>
         )}
+
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
