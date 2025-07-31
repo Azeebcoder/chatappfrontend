@@ -37,13 +37,13 @@ const ChatPage = () => {
     const container = containerRef.current;
     if (!container) return;
     isAtBottomRef.current =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      50;
+      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
 
     if (hasMore && container.scrollTop < 50 && !isLoadingMore) {
       fetchMessages(true);
     }
   };
+
   const onCancelEdit = () => {
     setEditingMessage(null);
     setContent("");
@@ -55,9 +55,7 @@ const ChatPage = () => {
     try {
       setIsLoadingMore(true);
       const res = await axios.get(
-        `/message/getmessage/${chatId}?limit=${limit}&skip=${
-          loadMore ? skip : 0
-        }`
+        `/message/getmessage/${chatId}?limit=${limit}&skip=${loadMore ? skip : 0}`
       );
       const newMessages = res.data;
 
@@ -140,15 +138,14 @@ const ChatPage = () => {
 
         if (message.sender._id !== userId) {
           notificationAudio.current?.play().catch(() => {});
+          socket.emit("messageDelivered", message._id);
         }
       }
     };
 
     const handleEditMessage = (updatedMessage) => {
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === updatedMessage._id ? updatedMessage : msg
-        )
+        prev.map((msg) => (msg._id === updatedMessage._id ? updatedMessage : msg))
       );
     };
 
@@ -168,12 +165,26 @@ const ChatPage = () => {
       setIsChatUserOnline(userIds.includes(chatUser?._id));
     };
 
+    const handleMessageDelivered = (messageId) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? { ...m, status: "delivered" } : m))
+      );
+    };
+
+    const handleMessageRead = (messageId) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? { ...m, status: "read" } : m))
+      );
+    };
+
     socket.on("newMessage", handleNewMessage);
     socket.on("editMessage", handleEditMessage);
     socket.on("deleteMessage", handleDeleteMessage);
     socket.on("typing", handleTyping);
     socket.on("stopTyping", handleStopTyping);
     socket.on("activeUsers", handleActiveUsers);
+    socket.on("messageDelivered", handleMessageDelivered);
+    socket.on("messageRead", handleMessageRead);
 
     return () => {
       socket.emit("leaveChat", chatId);
@@ -183,6 +194,8 @@ const ChatPage = () => {
       socket.off("typing", handleTyping);
       socket.off("stopTyping", handleStopTyping);
       socket.off("activeUsers", handleActiveUsers);
+      socket.off("messageDelivered", handleMessageDelivered);
+      socket.off("messageRead", handleMessageRead);
     };
   }, [chatId, chatUser?._id, userId]);
 
@@ -193,12 +206,9 @@ const ChatPage = () => {
 
     if (editingMessage) {
       try {
-        const { data } = await axios.put(
-          `/message/edit/${editingMessage._id}`,
-          {
-            content: trimmed,
-          }
-        );
+        const { data } = await axios.put(`/message/edit/${editingMessage._id}`, {
+          content: trimmed,
+        });
         socket.emit("editMessage", data);
         setMessages((prev) =>
           prev.map((msg) => (msg._id === data._id ? data : msg))
@@ -244,7 +254,7 @@ const ChatPage = () => {
           ? filtered
           : [...filtered, data];
       });
-      socket.emit("newMessage", chatId);
+      socket.emit("newMessage", data);
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
@@ -259,7 +269,6 @@ const ChatPage = () => {
     try {
       await axios.delete(`/message/delete/${messageId}`);
       setMessages((prev) => prev.filter((m) => m._id !== messageId));
-      // ❌ Don't scroll here to avoid jump
     } catch (err) {
       console.error("Failed to delete message", err);
     }
@@ -270,7 +279,6 @@ const ChatPage = () => {
     setContent(msg.content);
   };
 
-  // ✅ Optional scroll on typing if user is already at bottom
   useEffect(() => {
     if (typing && isAtBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });

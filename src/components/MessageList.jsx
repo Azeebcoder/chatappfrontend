@@ -17,7 +17,49 @@ const MessageList = ({
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return "sending..."; // Handle invalid date
+    }
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const getStatusIcon = (msg) => {
+    if (msg.status === "failed") {
+      return (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRetry(e, msg._id);
+          }}
+          className="text-red-300 underline ml-1"
+        >
+          Retry
+        </button>
+      );
+    }
+
+    if (msg.status === "sending") {
+      return <span className="italic text-white/60">...</span>;
+    }
+
+    const isRead = msg.status === "read";
+    const isDelivered = msg.status === "delivered";
+    const isSent = msg.status === "sent";
+
+    return (
+      <span
+        className={`text-[11px] leading-none flex ${
+          isRead
+            ? "text-blue-400"
+            : isDelivered
+            ? "text-white"
+            : "text-white/60"
+        }`}
+      >
+        <span className="-mr-[2px]">✓</span>
+        {(isDelivered || isRead) && <span>✓</span>}
+      </span>
+    );
   };
 
   return (
@@ -34,7 +76,9 @@ const MessageList = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className={`flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
+              className={`flex ${
+                isOwn ? "justify-end" : "justify-start"
+              } gap-2`}
               onClick={() =>
                 isOwn &&
                 setActiveMessage(msg._id === activeMessage ? null : msg._id)
@@ -49,7 +93,6 @@ const MessageList = ({
               )}
 
               <div className="relative flex flex-col max-w-[80%]">
-
                 <div
                   className={`relative rounded-xl px-4 py-2 shadow-md group cursor-pointer text-sm whitespace-pre-line break-words
                     ${
@@ -75,37 +118,15 @@ const MessageList = ({
                     </p>
                   </div>
 
-                  {/* WhatsApp-like footer */}
                   {isOwn && (
                     <div className="absolute bottom-1 right-2 flex items-center gap-[4px] text-[10px] text-white/80">
                       <span>{formatTime(msg.createdAt)}</span>
-                      {msg.status === "sending" ? (
-                        <span className="italic text-white/60">...</span>
-                      ) : msg.status === "failed" ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRetry(e, msg._id);
-                          }}
-                          className="text-red-300 underline ml-1"
-                        >
-                          Retry
-                        </button>
-                      ) : (
-                        <span
-                          className={`text-[11px] leading-none flex ${
-                            msg.read ? "text-blue-400" : "text-white/70"
-                          }`}
-                        >
-                          <span className="-mr-[2px]">✓</span>
-                          <span>✓</span>
-                        </span>
-                      )}
+                      {getStatusIcon(msg)}
                     </div>
                   )}
                 </div>
 
-                {/* Left-side action popup */}
+                {/* Message actions (Unsend/Edit) */}
                 <AnimatePresence>
                   {isOwn && isActive && (
                     <motion.div
