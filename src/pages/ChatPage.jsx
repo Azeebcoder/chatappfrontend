@@ -271,12 +271,14 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-gray-900 to-black text-white">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-gradient-to-br from-gray-900 to-black">
       <ChatHeader
         chatId={chatId}
         chatUser={chatUser}
         isChatUserOnline={isChatUserOnline}
         setChatUser={setChatUser}
       />
+    </div>
 
       <div
         ref={containerRef}
