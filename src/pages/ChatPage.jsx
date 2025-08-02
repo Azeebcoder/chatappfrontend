@@ -27,6 +27,7 @@ const ChatPage = () => {
   const notificationAudio = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isAtBottomRef = useRef(true);
+  
 
   useEffect(() => {
     notificationAudio.current = new Audio("/notification.mp3");
@@ -51,7 +52,6 @@ const ChatPage = () => {
 
   const fetchMessages = async (loadMore = false) => {
     if (isLoadingMore) return;
-
     try {
       setIsLoadingMore(true);
       const res = await axios.get(
@@ -136,9 +136,13 @@ const ChatPage = () => {
           }, 100);
         }
 
-        if (message.sender._id !== userId) {
+        if (
+          message.sender._id !== userId &&
+          isChatUserOnline &&
+          document.visibilityState === "visible"
+        ) {
           notificationAudio.current?.play().catch(() => {});
-          socket.emit("messageDelivered", message._id);
+          socket.emit("messagesDelivered", { chatId });
         }
       }
     };
@@ -162,18 +166,24 @@ const ChatPage = () => {
     };
 
     const handleActiveUsers = (userIds) => {
-      setIsChatUserOnline(userIds.includes(chatUser?._id));
+      const online = userIds.includes(chatUser?._id);
+      setIsChatUserOnline(online);
     };
 
-    const handleMessageDelivered = (messageId) => {
+    const handleMessagesDelivered = ({ userId: senderId, messageIds }) => {
+      console.log(messageIds)
       setMessages((prev) =>
-        prev.map((m) => (m._id === messageId ? { ...m, status: "delivered" } : m))
-      );
+        prev.map((m) =>
+          messageIds.includes(m._id) ? { ...m, status: "delivered" } : m
+        )
+      );      
     };
 
-    const handleMessageRead = (messageId) => {
+    const handleMessagesRead = ({ userId: readerId, messageIds }) => {
       setMessages((prev) =>
-        prev.map((m) => (m._id === messageId ? { ...m, status: "read" } : m))
+        prev.map((m) =>
+          messageIds.includes(m._id) ? { ...m, status: "read" } : m
+        )
       );
     };
 
@@ -183,8 +193,8 @@ const ChatPage = () => {
     socket.on("typing", handleTyping);
     socket.on("stopTyping", handleStopTyping);
     socket.on("activeUsers", handleActiveUsers);
-    socket.on("messageDelivered", handleMessageDelivered);
-    socket.on("messageRead", handleMessageRead);
+    socket.on("messagesDelivered", handleMessagesDelivered);
+    socket.on("messagesRead", handleMessagesRead);
 
     return () => {
       socket.emit("leaveChat", chatId);
@@ -194,10 +204,38 @@ const ChatPage = () => {
       socket.off("typing", handleTyping);
       socket.off("stopTyping", handleStopTyping);
       socket.off("activeUsers", handleActiveUsers);
-      socket.off("messageDelivered", handleMessageDelivered);
-      socket.off("messageRead", handleMessageRead);
+      socket.off("messagesDelivered", handleMessagesDelivered);
+      socket.off("messagesRead", handleMessagesRead);
     };
-  }, [chatId, chatUser?._id, userId]);
+  }, [chatId, chatUser?._id, userId, isChatUserOnline]);
+
+  // 🔁 Deliver old messages when other user becomes online
+  useEffect(() => {
+    if (!chatId || !userId || !isChatUserOnline) return;
+
+    const undelivered = messages.some(
+      (msg) =>
+        msg.sender._id !== userId &&
+        (msg.status === "sent" || msg.status === undefined)
+    );
+
+    if (undelivered && document.visibilityState === "visible") {
+      socket.emit("messageDelivered", { chatId });
+    }
+  }, [isChatUserOnline]);
+
+  // ✅ Mark read when user views the chat
+  useEffect(() => {
+    if (!chatId || !userId || messages.length === 0) return;
+
+    const unreadMessages = messages
+      .filter((msg) => msg.sender._id !== userId && msg.status !== "read")
+      .map((msg) => msg._id);
+
+    if (unreadMessages.length > 0) {
+      socket.emit("messageRead", { chatId, messageIds: unreadMessages });
+    }
+  }, [messages, userId, chatId]);
 
   const sendMessage = async (e, retryId = null) => {
     e?.preventDefault();
