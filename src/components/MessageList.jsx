@@ -47,15 +47,15 @@ const MessageList = ({
 
     return (
       <span
-        className={`text-[11px] flex items-center gap-[1px] ${
+        className={`text-[11px] flex items-center gap-[0px] ${
           isRead
-            ? "text-blue-400"
+            ? "text-red-500"
             : isDelivered
             ? "text-white"
             : "text-white/60"
         }`}
       >
-        <span>✓</span>
+        <span className="-mr-[2px]">✓</span>
         {(isDelivered || isRead) && <span>✓</span>}
       </span>
     );
@@ -75,7 +75,9 @@ const MessageList = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className={`flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
+              className={`flex ${
+                isOwn ? "justify-end" : "justify-start"
+              } gap-2`}
               onClick={() =>
                 isOwn &&
                 setActiveMessage(msg._id === activeMessage ? null : msg._id)

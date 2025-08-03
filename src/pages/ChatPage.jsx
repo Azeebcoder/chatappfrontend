@@ -40,6 +40,7 @@ const ChatPage = () => {
   const handleScroll = () => {
     const container = containerRef.current;
     if (!container) return;
+
     isAtBottomRef.current =
       container.scrollHeight - container.scrollTop - container.clientHeight < 50;
 
@@ -55,6 +56,7 @@ const ChatPage = () => {
 
   const fetchMessages = async (loadMore = false) => {
     if (isLoadingMore) return;
+
     try {
       setIsLoadingMore(true);
       const res = await axios.get(
@@ -65,8 +67,10 @@ const ChatPage = () => {
       if (loadMore) {
         const container = containerRef.current;
         const prevScrollHeight = container.scrollHeight;
+
         setMessages((prev) => [...newMessages, ...prev]);
         setSkip((prev) => prev + newMessages.length);
+
         requestAnimationFrame(() => {
           const newScrollHeight = container.scrollHeight;
           container.scrollTop = newScrollHeight - prevScrollHeight;
@@ -104,6 +108,7 @@ const ChatPage = () => {
         console.error("Error fetching chat user:", err);
       }
     };
+
     if (chatId) fetchChatUser();
   }, [chatId]);
 
@@ -116,6 +121,7 @@ const ChatPage = () => {
         console.error("Failed to fetch current user:", err);
       }
     };
+
     fetchCurrentUser();
   }, []);
 
@@ -257,7 +263,7 @@ const ChatPage = () => {
     const tempMsg = {
       _id: tempId,
       content: msgContent,
-      sender: userId, // just the ID (matches backend format)
+      sender: userId,
       chat: chatId,
       status: "sending",
       read: false,
