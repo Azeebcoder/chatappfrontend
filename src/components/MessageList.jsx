@@ -17,10 +17,9 @@ const MessageList = ({
 
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return "sending..."; // Handle invalid date
-    }
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return isNaN(date.getTime())
+      ? "sending..."
+      : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   const getStatusIcon = (msg) => {
@@ -48,7 +47,7 @@ const MessageList = ({
 
     return (
       <span
-        className={`text-[11px] leading-none flex ${
+        className={`text-[11px] flex items-center gap-[1px] ${
           isRead
             ? "text-blue-400"
             : isDelivered
@@ -56,7 +55,7 @@ const MessageList = ({
             : "text-white/60"
         }`}
       >
-        <span className="-mr-[2px]">✓</span>
+        <span>✓</span>
         {(isDelivered || isRead) && <span>✓</span>}
       </span>
     );
@@ -76,9 +75,7 @@ const MessageList = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className={`flex ${
-                isOwn ? "justify-end" : "justify-start"
-              } gap-2`}
+              className={`flex ${isOwn ? "justify-end" : "justify-start"} gap-2`}
               onClick={() =>
                 isOwn &&
                 setActiveMessage(msg._id === activeMessage ? null : msg._id)
@@ -94,12 +91,11 @@ const MessageList = ({
 
               <div className="relative flex flex-col max-w-[80%]">
                 <div
-                  className={`relative rounded-xl px-4 py-2 shadow-md group cursor-pointer text-sm whitespace-pre-line break-words
-                    ${
-                      isOwn
-                        ? "bg-blue-600 text-white rounded-br-none"
-                        : "bg-white/5 text-white border border-white/10 rounded-bl-none"
-                    }`}
+                  className={`relative rounded-xl px-4 py-2 shadow-md group cursor-pointer text-sm whitespace-pre-line break-words ${
+                    isOwn
+                      ? "bg-blue-600 text-white rounded-br-none"
+                      : "bg-white/5 text-white border border-white/10 rounded-bl-none"
+                  }`}
                 >
                   {!isOwn && (
                     <p className="text-xs text-gray-300 font-medium mb-1">
@@ -126,7 +122,6 @@ const MessageList = ({
                   )}
                 </div>
 
-                {/* Message actions (Unsend/Edit) */}
                 <AnimatePresence>
                   {isOwn && isActive && (
                     <motion.div
@@ -164,7 +159,6 @@ const MessageList = ({
         })}
       </AnimatePresence>
 
-      {/* Typing indicator */}
       {typing && (
         <div className="text-sm italic text-gray-400 px-2 pt-2">Typing...</div>
       )}

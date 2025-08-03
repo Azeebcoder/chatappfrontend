@@ -6,9 +6,12 @@ import socket from "../utils/socket.js";
 import ChatHeader from "../components/ChatHeader.jsx";
 import MessageInput from "../components/MessageInput.jsx";
 import MessageList from "../components/MessageList.jsx";
+import { useSocket } from "../store/SocketContext.jsx";
 
 const ChatPage = () => {
   const { chatId } = useParams();
+  const { activeUsers } = useSocket();
+
   const [content, setContent] = useState("");
   const [messages, setMessages] = useState([]);
   const [chatUser, setChatUser] = useState(null);
@@ -18,7 +21,6 @@ const ChatPage = () => {
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isChatUserOnline, setIsChatUserOnline] = useState(false);
   const [limit] = useState(20);
   const [editingMessage, setEditingMessage] = useState(null);
 
@@ -27,7 +29,8 @@ const ChatPage = () => {
   const notificationAudio = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isAtBottomRef = useRef(true);
-  
+
+  const isChatUserOnline = chatUser?._id && activeUsers.includes(chatUser._id);
 
   useEffect(() => {
     notificationAudio.current = new Audio("/notification.mp3");
@@ -64,7 +67,6 @@ const ChatPage = () => {
         const prevScrollHeight = container.scrollHeight;
         setMessages((prev) => [...newMessages, ...prev]);
         setSkip((prev) => prev + newMessages.length);
-
         requestAnimationFrame(() => {
           const newScrollHeight = container.scrollHeight;
           container.scrollTop = newScrollHeight - prevScrollHeight;
@@ -137,12 +139,10 @@ const ChatPage = () => {
         }
 
         if (
-          message.sender._id !== userId &&
-          isChatUserOnline &&
+          (message.sender._id || message.sender) !== userId &&
           document.visibilityState === "visible"
         ) {
           notificationAudio.current?.play().catch(() => {});
-          socket.emit("messagesDelivered", { chatId });
         }
       }
     };
@@ -165,18 +165,12 @@ const ChatPage = () => {
       if (id === chatUser?._id) setTyping(false);
     };
 
-    const handleActiveUsers = (userIds) => {
-      const online = userIds.includes(chatUser?._id);
-      setIsChatUserOnline(online);
-    };
-
     const handleMessagesDelivered = ({ userId: senderId, messageIds }) => {
-      console.log(messageIds)
       setMessages((prev) =>
         prev.map((m) =>
           messageIds.includes(m._id) ? { ...m, status: "delivered" } : m
         )
-      );      
+      );
     };
 
     const handleMessagesRead = ({ userId: readerId, messageIds }) => {
@@ -192,7 +186,6 @@ const ChatPage = () => {
     socket.on("deleteMessage", handleDeleteMessage);
     socket.on("typing", handleTyping);
     socket.on("stopTyping", handleStopTyping);
-    socket.on("activeUsers", handleActiveUsers);
     socket.on("messagesDelivered", handleMessagesDelivered);
     socket.on("messagesRead", handleMessagesRead);
 
@@ -203,33 +196,30 @@ const ChatPage = () => {
       socket.off("deleteMessage", handleDeleteMessage);
       socket.off("typing", handleTyping);
       socket.off("stopTyping", handleStopTyping);
-      socket.off("activeUsers", handleActiveUsers);
       socket.off("messagesDelivered", handleMessagesDelivered);
       socket.off("messagesRead", handleMessagesRead);
     };
   }, [chatId, chatUser?._id, userId, isChatUserOnline]);
 
-  // 🔁 Deliver old messages when other user becomes online
   useEffect(() => {
-    if (!chatId || !userId || !isChatUserOnline) return;
+    if (!chatId || !userId || !isChatUserOnline || messages.length === 0) return;
 
     const undelivered = messages.some(
       (msg) =>
-        msg.sender._id !== userId &&
+        (msg.sender._id || msg.sender) !== userId &&
         (msg.status === "sent" || msg.status === undefined)
     );
 
     if (undelivered && document.visibilityState === "visible") {
       socket.emit("messageDelivered", { chatId });
     }
-  }, [isChatUserOnline]);
+  }, [isChatUserOnline, messages, chatId, userId]);
 
-  // ✅ Mark read when user views the chat
   useEffect(() => {
     if (!chatId || !userId || messages.length === 0) return;
 
     const unreadMessages = messages
-      .filter((msg) => msg.sender._id !== userId && msg.status !== "read")
+      .filter((msg) => (msg.sender._id || msg.sender) !== userId && msg.status !== "read")
       .map((msg) => msg._id);
 
     if (unreadMessages.length > 0) {
@@ -267,7 +257,7 @@ const ChatPage = () => {
     const tempMsg = {
       _id: tempId,
       content: msgContent,
-      sender: { _id: userId, username: "You" },
+      sender: userId, // just the ID (matches backend format)
       chat: chatId,
       status: "sending",
       read: false,
