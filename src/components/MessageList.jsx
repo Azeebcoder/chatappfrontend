@@ -43,11 +43,10 @@ const MessageList = ({
 
     const isRead = msg.status === "read";
     const isDelivered = msg.status === "delivered";
-    const isSent = msg.status === "sent";
 
     return (
       <span
-        className={`text-[11px] flex items-center gap-[0px] ${
+        className={`text-[11px] font-bold flex items-center gap-[0px] ${
           isRead
             ? "text-red-500"
             : isDelivered
@@ -65,7 +64,9 @@ const MessageList = ({
     <div className="flex-1 overflow-y-auto px-4 pt-4 pb-12 space-y-3 scrollbar-thin scrollbar-thumb-gray-600">
       <AnimatePresence>
         {messages.map((msg) => {
-          const isOwn = msg.sender._id === userId;
+          const senderId =
+            typeof msg.sender === "string" ? msg.sender : msg.sender._id;
+          const isOwn = senderId === userId;
           const isActive = activeMessage === msg._id;
 
           return (
@@ -99,7 +100,7 @@ const MessageList = ({
                       : "bg-white/5 text-white border border-white/10 rounded-bl-none"
                   }`}
                 >
-                  {!isOwn && (
+                  {!isOwn && msg.sender?.username && (
                     <p className="text-xs text-gray-300 font-medium mb-1">
                       {msg.sender.username}
                     </p>

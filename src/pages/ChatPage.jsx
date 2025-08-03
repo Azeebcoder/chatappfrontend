@@ -263,7 +263,7 @@ const ChatPage = () => {
     const tempMsg = {
       _id: tempId,
       content: msgContent,
-      sender: userId,
+      sender: { _id: userId }, // ✅ fixed: object with _id
       chat: chatId,
       status: "sending",
       read: false,
