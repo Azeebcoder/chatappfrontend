@@ -32,6 +32,16 @@ const ChatPage = () => {
 
   const isChatUserOnline = chatUser?._id && activeUsers.includes(chatUser._id);
 
+  const onVoiceCall = () => {
+    // trigger voice call modal or logic
+    console.log("Voice call triggered");
+  };
+
+  const onVideoCall = () => {
+    // trigger video call modal or logic
+    console.log("Video call triggered");
+  };
+
   useEffect(() => {
     notificationAudio.current = new Audio("/notification.mp3");
     notificationAudio.current.load();
@@ -263,7 +273,7 @@ const ChatPage = () => {
     const tempMsg = {
       _id: tempId,
       content: msgContent,
-      sender: { _id: userId }, // ✅ fixed: object with _id
+      sender: { _id: userId },
       chat: chatId,
       status: "sending",
       read: false,
@@ -327,6 +337,8 @@ const ChatPage = () => {
           chatUser={chatUser}
           isChatUserOnline={isChatUserOnline}
           setChatUser={setChatUser}
+          onVoiceCall={onVoiceCall}
+          onVideoCall={onVideoCall}
         />
       </div>
 
