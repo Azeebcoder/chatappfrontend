@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import axios from "../utils/AxiosConfig.jsx";
 import socket from "../utils/socket.js";
 
@@ -39,7 +39,7 @@ const ChatPage = () => {
 
   const onVideoCall = () => {
     // trigger video call modal or logic
-    console.log("Video call triggered");
+    Navigate(`/call/${userId}`);
   };
 
   useEffect(() => {

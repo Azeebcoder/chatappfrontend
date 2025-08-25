@@ -13,6 +13,7 @@ import ViewProfile from "./pages/ViewProfile.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import Protected from "./Protected/Protected.jsx";
 import Friends from "./pages/Friends.jsx";
+import Call from "./pages/Call.jsx";
 
 const App = () => {
   return (
@@ -78,6 +79,14 @@ const App = () => {
           element={
             <Protected>
               <ViewProfile />
+            </Protected>
+          }
+        />
+        <Route
+          path="/call/:userId"
+          element={
+            <Protected>
+              <Call/>
             </Protected>
           }
         />
